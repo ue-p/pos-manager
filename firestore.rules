@@ -7,7 +7,7 @@ service cloud.firestore {
     // 部員共通アカウントのメールアドレス（本番プロジェクト dakken2026pos で作成したもの）。
     // .env.local の VITE_SHARED_ACCOUNT_EMAIL と必ずそろえる（D-21）。ルールのテストと E2E はここから読み取る。
     function sharedEmail() {
-      return 'ueha82477@gmail.com';
+      return 'dakken205@gmail.com';
     }
 
     function isStaff() {
