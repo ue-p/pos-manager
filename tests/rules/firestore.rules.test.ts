@@ -9,7 +9,8 @@ import { deleteDoc, doc, getDoc, serverTimestamp, setDoc, updateDoc, writeBatch,
 import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
-const STAFF = 'staff@gakusai-pos.example';
+// 共通アカウントのメールアドレスは firestore.rules の sharedEmail() から読み取る（書き換えてもテストが追従する）
+const STAFF = /function sharedEmail\(\)\s*\{\s*return '([^']+)'/.exec(readFileSync('firestore.rules', 'utf8'))![1];
 let env: RulesTestEnvironment;
 
 const staffDb = () => env.authenticatedContext('staff', { email: STAFF }).firestore();

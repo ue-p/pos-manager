@@ -1,4 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+
+// 開発用アカウントのメールアドレスを firestore.rules の sharedEmail() にそろえる（.env.local が無くても E2E が通るように）
+const sharedEmail = /function sharedEmail\(\)\s*\{\s*return '([^']+)'/.exec(readFileSync('firestore.rules', 'utf8'))![1];
 
 // npm run test:e2e（Emulator を起動してから開発サーバー相手に実行する）
 export default defineConfig({
@@ -16,5 +20,7 @@ export default defineConfig({
     url: 'http://localhost:5173',
     reuseExistingServer: true,
     timeout: 60_000,
+    // Emulator に接続させる（.env.local の設定より優先される）
+    env: { VITE_USE_EMULATOR: 'true', VITE_SHARED_ACCOUNT_EMAIL: sharedEmail },
   },
 });

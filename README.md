@@ -41,7 +41,7 @@ npm run test:e2e                                    # ブラウザで当日の�
    - プロジェクトの設定 → マイアプリ → ウェブアプリを追加し、設定値を控える
 2. `.env.example` を `.env.local` にコピーして設定値と共通アカウントのメールアドレスを書く（コミットしない）
 3. `firestore.rules` の `sharedEmail()` を共通アカウントのメールアドレスに書き換える
-4. `npx firebase login` → `npx firebase use --add`（作ったプロジェクトを選ぶ）
-5. `npm run build` → `npx firebase deploy --only hosting,firestore:rules`
+4. `npx firebase login`。本番プロジェクトは `.firebaserc` に `dakken2026pos` として設定済み（別のプロジェクトにするときは `npx firebase use --add`）
+5. `npm run build` → `npx firebase deploy --only firestore:rules,firestore:indexes,hosting`
 
 デプロイ後、Hosting の URL を部員にだけ共有してください（部外に公開しない）。

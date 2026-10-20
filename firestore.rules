@@ -4,10 +4,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 部員共通アカウントのメールアドレス。
-    // 本番では Firebase コンソールで作ったアカウントに書き換え、.env.local の VITE_SHARED_ACCOUNT_EMAIL とそろえる。
+    // 部員共通アカウントのメールアドレス（本番プロジェクト dakken2026pos で作成したもの）。
+    // .env.local の VITE_SHARED_ACCOUNT_EMAIL と必ずそろえる（D-21）。ルールのテストと E2E はここから読み取る。
     function sharedEmail() {
-      return 'staff@gakusai-pos.example';
+      return 'ueha82477@gmail.com';
     }
 
     function isStaff() {

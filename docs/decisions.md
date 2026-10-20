@@ -221,7 +221,9 @@ D-10 の表示データに次の項目を追加する。お客さん用画面は
 
 - `npm run dev` は既定で Emulator（プロジェクトID `demo-gakusai-pos`）に接続する。本番ビルド（`npm run build`）は常に本番プロジェクトに接続する。
 - Emulator 接続中だけ、ログイン画面に「開発用アカウントを作成」ボタンを出す（本番には出ない）。
-- 部員共通アカウントのメールアドレスは `firestore.rules` の `sharedEmail()` と `.env.local` の `VITE_SHARED_ACCOUNT_EMAIL` の2か所で一致させる（既定は `staff@gakusai-pos.example`）。
+- 部員共通アカウントのメールアドレスは `firestore.rules` の `sharedEmail()` と `.env.local` の `VITE_SHARED_ACCOUNT_EMAIL` の2か所で一致させる（2026-10-21 に本番の共通アカウントのアドレスへ変更。旧既定は `staff@gakusai-pos.example`）。ルールのテストと E2E は `firestore.rules` からアドレスを読み取るので、書き換えてもテストは追従する。
+- 本番プロジェクトは `dakken2026pos`（Firestore：Standard エディション、`asia-northeast1`。Authentication：メール/パスワード）。`.firebaserc` の既定プロジェクトにする。Emulator を使う npm scripts は `--project demo-gakusai-pos` を明示しているので、本番には接続しない。
+- **本番環境でもテストモード（`is_test=true`）での入力を許可する**（2026-10-21 決定）。実機テストやレジ練習を本番の環境・端末で行えるようにするため。テストモードの記録は本番の Firestore に残るが、集計・在庫からは除外され（D-06）、CSV では `is_test` で分析から除外する。セキュリティルールでも `is_test` の値で書き込みを制限しない（自動記録の `is_test=false` 強制だけは維持：D-24, D-25）。練習の前後でテストモードの切替が施策ログに残るので、どこからどこまでが練習かは後から確認できる。
 - `transaction_id` などの UUID は `crypto.randomUUID()` を使い、http（LAN の IP 直打ち）などで使えない場合だけ `crypto.getRandomValues()` による UUID v4 で代替する（`src/lib/uuid.ts`）。`Math.random` は使わない（2026-10-20 に確認済み。`device_id` の生成も `crypto.getRandomValues()`）。
 
 ## D-22 画面の細かい挙動（状態：確定）
