@@ -82,6 +82,7 @@ Firebase Hosting は SPA 用に全パスを `index.html` へ rewrite する。
 - 会計確定時点の値を各ドキュメントの `is_test` に焼き込む。
 - テストモード中は全画面（お客さん用画面を除く）の上部に、色付きの帯を常時表示する。
 - 懸念：オフライン中の端末には切替が届かない。開店前チェックで全端末の帯が消えたことを目視確認する運用にする。
+- 切替の記録・確認ダイアログ・お客さん用画面の表示は D-24 を参照。
 
 ## D-07 設定のドキュメント形（状態：確定）
 
@@ -146,7 +147,7 @@ Firebase Hosting は SPA 用に全パスを `index.html` へ rewrite する。
 | --- | --- |
 | transactions.csv | transaction_id, timestamp, group_type, group_size, total, received, change, design_1_qty, design_2_qty, design_3_qty, register_id, device_id, is_void, is_test |
 | vr_visits.csv | visit_id, timestamp, register_id, device_id, is_void, is_test |
-| action_logs.csv | log_id, timestamp, note, register_id, device_id, is_test |
+| action_logs.csv | log_id, timestamp, log_type, note, register_id, device_id, is_test（log_type は 2026-10-20 に追加。D-24） |
 | register_closings.csv | closing_id, timestamp, business_date, register_id, device_id, system_cash_sales, counted_cash, float_amount, difference, is_test |
 
 - transactions.csv の列順は要件 6.2 末尾の記述どおり。
@@ -220,3 +221,30 @@ D-10 の表示データに次の項目を追加する。お客さん用画面は
 
 要件定義書の原本で「それぞれのアクセスしている端末で決定」とされたため、アプリはブラウザの通常のダウンロードとして ZIP を保存するだけにする。
 保存先フォルダや共有ドライブへのアップロードは各端末の運用で決める（`docs/operations.md`）。
+
+## D-24 テストモード切替の記録（状態：確定 2026-10-20）
+
+D-06 の補足。いつからいつまでがテスト（練習）だったかを後から確かめられるようにする。
+
+**記録の内容**
+- テストモードを切り替えると、施策ログ（`action_logs`）に自動で1件記録する。`note` は「テストモードをオンにした」／「テストモードをオフにした」。
+- 時刻・端末ID・レジ番号は手入力の施策ログと同じように入れる。
+- この自動記録は、テストモード中かどうかにかかわらず**常に `is_test=false`**（本番とテストの境目を示す記録なので、分析時に除外されないようにする）。
+- 施策ログに種類の列 `log_type` を追加する。値は `manual`（手入力）／`test_mode_on`／`test_mode_off`。`action_logs.csv` にも `timestamp` の次の列として出力する（D-14 を更新）。
+- `log_type` が無い追加前の記録は、読み込み時に `manual` として扱う。
+
+**片方だけ成功しないようにする**
+- 切替（`settings/current.test_mode`）と記録（`action_logs/{log_id}`）は、Firestore の `writeBatch` で1回の書き込みにまとめる。バッチは端末内でもサーバーでも「全部反映」か「全部失敗」のどちらかになる。
+- オフライン中に切り替えても、切替と記録は一緒に端末に保存され、復帰後に1回の送信で一緒に届く。
+- `settings/current.test_mode_log_id` に、その切替の記録の ID を入れる。
+- セキュリティルールでも次を強制する（`getAfter` で同じ書き込みの中身を確認する）：
+  - `test_mode` を変える書き込みは、同じ書き込みで**新しく作られる**、向きの合った記録（`test_mode_on`／`test_mode_off`）を指している場合だけ通す。既存の記録の使い回しは不可。
+  - `test_mode_on`／`test_mode_off` の記録は、同じ書き込みで settings がその記録を指し、向きが合っている場合だけ作れる。`is_test=true` にはできない。
+  - `log_type` が無い・不明な値の施策ログは作れない。
+  - `settings` の削除は不可。
+- 切替の前には、オン・オフとも確認ダイアログを出す（実装済み）。
+
+**お客さん用画面の「TEST」表示は現状のままとする**
+- スタッフ画面（レジ・ダッシュボード・設定）には、目立つ帯を常時表示する。
+- お客さん用画面は来場者向けなので大きなバナーは出さず、左上に小さく「TEST」と出す現状のままとする（D-06 の「お客さん用画面を除く」に沿う）。
+- 既知の制約：この「TEST」はレジ画面が送る表示データで切り替わるため、そのレジ番号のレジ画面が開いていないと、開くまで反映されない。オフラインの別端末にも届かない。開店前チェック（`docs/operations.md`）の目視確認で補う。

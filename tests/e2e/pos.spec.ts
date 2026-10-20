@@ -112,10 +112,31 @@ test('学祭当日の一連の操作', async ({ browser }) => {
   await expect(page.locator('.pill', { hasText: 'CSV保存' })).not.toHaveClass(/pill--warn/);
   await shot(page, '06-settings');
 
-  // ---- テストモード：帯が出て、会計は集計から除外される ----
+  // ---- テストモード（D-24）：オフライン中に切り替えても、切替と記録が端末に残り、復帰後に一緒に届く ----
+  await staff.setOffline(true);
+  await expect(page.locator('.pill', { hasText: 'オフライン' })).toBeVisible();
   page.once('dialog', (d) => d.accept());
   await tap(page, 'テストモードにする');
   await expect(page.locator('.test-banner')).toBeVisible();
+  const autoOn = page.locator('.log-list li', { hasText: 'テストモードをオンにした' });
+  await expect(autoOn).toContainText('自動');
+  await expect(autoOn.locator('.tag--test')).toHaveCount(0); // 自動記録は is_test=false
+  await expect(page.locator('.pill', { hasText: /未送信 [1-9]件/ })).toBeVisible();
+  await shot(page, '10-offline-test-mode');
+  await staff.setOffline(false);
+  await expect(page.locator('.pill', { hasText: '未送信 0件' })).toBeVisible({ timeout: 30_000 });
+
+  // 別の端末からログインして、サーバーに切替と記録の両方が届いていることを確認
+  const device2 = await browser.newContext();
+  const page2 = await device2.newPage();
+  await page2.goto('/settings');
+  await page2.getByLabel('パスワード').fill('password123');
+  await page2.getByRole('button', { name: 'ログイン', exact: true }).click();
+  await expect(page2.locator('.test-banner')).toBeVisible({ timeout: 15_000 });
+  await expect(page2.locator('.log-list')).toContainText('テストモードをオンにした');
+  await device2.close();
+
+  // テストモード中の会計は集計から除外される
   await page.getByRole('link', { name: 'レジ' }).click();
   await page.locator('.item-btn', { hasText: 'セット' }).click();
   await tap(page, '大人');
@@ -127,6 +148,20 @@ test('学祭当日の一連の操作', async ({ browser }) => {
   await page.getByRole('link', { name: '設定・出力' }).click();
   await tap(page, 'テストモードを終了する');
   await expect(page.locator('.test-banner')).toHaveCount(0);
+  await expect(page.locator('.log-list')).toContainText('テストモードをオフにした');
+
+  // CSV：log_type 列が出て、自動記録は is_test=false
+  const download2Promise = page.waitForEvent('download');
+  await tap(page, 'CSVをダウンロード（ZIP）');
+  const zip2 = path.join(SHOTS, `second_${(await download2Promise).suggestedFilename()}`);
+  await (await download2Promise).saveAs(zip2);
+  const out2 = execFileSync('python', ['scripts/check_csv.py', zip2], {
+    encoding: 'utf8',
+    env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
+  });
+  console.log(out2);
+  expect(out2).toContain("施策ログ: {'manual': 1, 'test_mode_off': 1, 'test_mode_on': 1}");
+  expect(out2).toContain('OK');
 
   // ---- スマホ幅 ----
   await page.setViewportSize({ width: 390, height: 844 });

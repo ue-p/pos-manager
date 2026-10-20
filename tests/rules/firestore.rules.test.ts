@@ -5,7 +5,7 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { deleteDoc, doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { deleteDoc, doc, getDoc, serverTimestamp, setDoc, updateDoc, writeBatch, type Firestore } from 'firebase/firestore';
 import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
@@ -15,6 +15,8 @@ let env: RulesTestEnvironment;
 const staffDb = () => env.authenticatedContext('staff', { email: STAFF }).firestore();
 const otherDb = () => env.authenticatedContext('intruder', { email: 'someone@example.com' }).firestore();
 const anonDb = () => env.unauthenticatedContext().firestore();
+// rules-unit-testing は compat 版の Firestore を返す（実行時は modular API でもそのまま使える）
+type TestDb = ReturnType<typeof staffDb>;
 
 const tx = (id: string) => ({
   schema_version: 1,
@@ -107,7 +109,7 @@ describe('transactions', () => {
 
 describe('vr_visits / action_logs / register_closings', () => {
   const visit = { visit_id: 'v1', timestamp: '2026-11-03T14:00:00+09:00', register_id: 'reg_1', device_id: 'dev_a1b2', is_void: false, voided_at: null, is_test: false };
-  const log = { log_id: 'l1', timestamp: '2026-11-03T14:00:00+09:00', note: 'POP', register_id: 'reg_1', device_id: 'dev_a1b2', is_test: false };
+  const log = { log_id: 'l1', timestamp: '2026-11-03T14:00:00+09:00', log_type: 'manual', note: 'POP', register_id: 'reg_1', device_id: 'dev_a1b2', is_test: false };
 
   it('VR体験は作成と取消ができ、削除はできない', async () => {
     await assertSucceeds(setDoc(doc(staffDb(), 'vr_visits', 'v1'), visit));
@@ -145,5 +147,90 @@ describe('display_state', () => {
     await assertSucceeds(getDoc(doc(anonDb(), 'display_state', 'reg_1')));
     await assertFails(setDoc(doc(anonDb(), 'display_state', 'reg_1'), { register_id: 'reg_1', mode: 'idle' }));
     await assertFails(setDoc(doc(staffDb(), 'display_state', 'reg_1'), { register_id: 'reg_2', mode: 'idle' }));
+  });
+});
+
+describe('テストモード切替と施策ログ（D-24）', () => {
+  const autoLog = (id: string, on: boolean, extra: Record<string, unknown> = {}) => ({
+    log_id: id,
+    timestamp: '2026-11-03T08:00:00+09:00',
+    log_type: on ? 'test_mode_on' : 'test_mode_off',
+    note: on ? 'テストモードをオンにした' : 'テストモードをオフにした',
+    register_id: 'reg_1',
+    device_id: 'dev_a1b2',
+    is_test: false,
+    ...extra,
+  });
+
+  /** アプリと同じ形のバッチ（settings の切替 + 記録） */
+  const toggleBatch = (db: TestDb, on: boolean, logId: string, log = autoLog(logId, on)) => {
+    const b = writeBatch(db as unknown as Firestore);
+    b.set(doc(db, 'settings', 'current'), { test_mode: on, test_mode_log_id: logId }, { merge: true });
+    b.set(doc(db, 'action_logs', logId), log);
+    return b.commit();
+  };
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'settings', 'current'), { test_mode: false, prices: { set: 500 } });
+    });
+  });
+
+  it('切替と記録を同じバッチで書けば、オン→オフとも通る', async () => {
+    await assertSucceeds(toggleBatch(staffDb(), true, 'on1'));
+    await assertSucceeds(toggleBatch(staffDb(), false, 'off1'));
+  });
+
+  it('記録なしで test_mode だけ変えることはできない', async () => {
+    await assertFails(setDoc(doc(staffDb(), 'settings', 'current'), { test_mode: true }, { merge: true }));
+    await assertFails(
+      setDoc(doc(staffDb(), 'settings', 'current'), { test_mode: true, test_mode_log_id: 'nolog' }, { merge: true }),
+    );
+  });
+
+  it('切替なしで自動記録だけ作ることはできない', async () => {
+    await assertFails(setDoc(doc(staffDb(), 'action_logs', 'on2'), autoLog('on2', true)));
+  });
+
+  it('記録の種類と切替の向きが食い違うと通らない', async () => {
+    await assertFails(toggleBatch(staffDb(), true, 'x1', autoLog('x1', false)));
+  });
+
+  it('自動記録は is_test=true にできない', async () => {
+    await assertFails(toggleBatch(staffDb(), true, 'x2', autoLog('x2', true, { is_test: true })));
+  });
+
+  it('既にある記録を使い回して切り替えることはできない', async () => {
+    await assertSucceeds(toggleBatch(staffDb(), true, 'on3'));
+    await assertSucceeds(toggleBatch(staffDb(), false, 'off3'));
+    await assertFails(
+      setDoc(doc(staffDb(), 'settings', 'current'), { test_mode: true, test_mode_log_id: 'on3' }, { merge: true }),
+    );
+  });
+
+  it('test_mode を変えない設定の保存は記録なしで通る', async () => {
+    await assertSucceeds(setDoc(doc(staffDb(), 'settings', 'current'), { prices: { set: 600 } }, { merge: true }));
+  });
+
+  it('手入力メモは manual なら is_test=true でも作れる。不明な種類は作れない', async () => {
+    const memo = { log_id: 'm1', timestamp: 'x', log_type: 'manual', note: 'POP', register_id: 'reg_1', device_id: 'd', is_test: true };
+    await assertSucceeds(setDoc(doc(staffDb(), 'action_logs', 'm1'), memo));
+    await assertFails(setDoc(doc(staffDb(), 'action_logs', 'm2'), { ...memo, log_id: 'm2', log_type: 'other' }));
+    const { log_type: _omit, ...noType } = memo;
+    void _omit;
+    await assertFails(setDoc(doc(staffDb(), 'action_logs', 'm3'), { ...noType, log_id: 'm3' }));
+  });
+
+  it('オフライン復帰時の再送（同じ内容の上書き）は通る', async () => {
+    await assertSucceeds(toggleBatch(staffDb(), true, 'on4'));
+    const db = staffDb();
+    const b = writeBatch(db as unknown as Firestore);
+    b.set(doc(db, 'settings', 'current'), { test_mode: true, test_mode_log_id: 'on4', updated_at: serverTimestamp() }, { merge: true });
+    b.set(doc(db, 'action_logs', 'on4'), { ...autoLog('on4', true), created_at: serverTimestamp() });
+    await assertSucceeds(b.commit());
+  });
+
+  it('settings は削除できない', async () => {
+    await assertFails(deleteDoc(doc(staffDb(), 'settings', 'current')));
   });
 });

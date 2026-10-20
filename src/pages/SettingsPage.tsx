@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '../components/Toast';
 import { downloadExportZip } from '../data/exportZip';
 import { usePos } from '../data/PosDataProvider';
-import { saveActionLog, saveRegisterClosing, saveSettings } from '../data/repo';
+import { saveActionLog, saveRegisterClosing, saveSettings, setTestMode } from '../data/repo';
+import { createManualLog, createTestModeLog } from '../domain/actionLog';
 import { closingDifference, systemCashSales } from '../domain/aggregate';
 import { compareByTime } from '../domain/transaction';
 import { toLocalIsoString, todayLocalDate } from '../domain/time';
@@ -127,13 +128,24 @@ function ExportSection() {
 }
 
 function TestModeSection() {
-  const { settings } = usePos();
+  const { settings, registerId, deviceId } = usePos();
+  const toast = useToast();
   const toggle = () => {
     const next = !settings.test_mode;
     const msg = next
       ? 'テストモードをオンにしますか？\n全端末の入力にテストフラグが付き、集計・在庫から除外されます。'
       : 'テストモードをオフにしますか？\nこれ以降の入力は本番の売上として記録されます。';
-    if (window.confirm(msg)) saveSettings({ test_mode: next });
+    if (!window.confirm(msg)) return;
+    // 切替と施策ログへの記録は1つのバッチで書く（D-24）
+    const log = createTestModeLog({
+      on: next,
+      logId: newUuid(),
+      timestamp: toLocalIsoString(new Date()),
+      registerId,
+      deviceId,
+    });
+    setTestMode(next, log);
+    toast(`${log.note}（施策ログに記録）`);
   };
   return (
     <section className="panel">
@@ -250,17 +262,17 @@ function ActionLogSection() {
   const [note, setNote] = useState('');
 
   const record = (text: string) => {
-    const t = text.trim();
-    if (!t) return;
-    saveActionLog({
-      log_id: newUuid(),
+    if (!text.trim()) return;
+    const log = createManualLog({
+      logId: newUuid(),
       timestamp: toLocalIsoString(new Date()),
-      note: t,
-      register_id: registerId,
-      device_id: deviceId,
-      is_test: settings.test_mode,
+      note: text,
+      registerId,
+      deviceId,
+      isTest: settings.test_mode,
     });
-    toast(`記録しました：${t}`);
+    saveActionLog(log);
+    toast(`記録しました：${log.note}`);
     setNote('');
   };
 
@@ -296,6 +308,7 @@ function ActionLogSection() {
                 {l.timestamp.slice(5, 10).replace('-', '/')} {hhmm(l.timestamp)}
               </span>
               {l.note}
+              {l.log_type !== 'manual' && <span className="tag">自動</span>}
               {l.is_test && <span className="tag tag--test">テスト</span>}
             </li>
           ))}

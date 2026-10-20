@@ -36,7 +36,7 @@ SCHEMAS: dict[str, dict[str, str]] = {
         "visit_id": STR, "timestamp": STR, "register_id": STR, "device_id": STR, "is_void": BOOL, "is_test": BOOL,
     },
     "action_logs.csv": {
-        "log_id": STR, "timestamp": STR, "note": STR, "register_id": STR, "device_id": STR, "is_test": BOOL,
+        "log_id": STR, "timestamp": STR, "log_type": STR, "note": STR, "register_id": STR, "device_id": STR, "is_test": BOOL,
     },
     "register_closings.csv": {
         "closing_id": STR, "timestamp": STR, "business_date": STR, "register_id": STR, "device_id": STR,
@@ -47,6 +47,7 @@ SCHEMAS: dict[str, dict[str, str]] = {
 CODES = {
     "item": {"design_1", "design_2", "design_3", "set"},
     "group_type": {"family", "student", "adult", "other", "unknown"},
+    "log_type": {"manual", "test_mode_on", "test_mode_off"},
 }
 
 TIMESTAMP_RE = r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$"
@@ -122,6 +123,14 @@ def main() -> int:
             vr_n = int((~vrs["is_void"] & ~vrs["is_test"]).sum())
             rate = f"{len(valid) / vr_n:.1%}" if vr_n else "—"
             print(f"VR体験者 {vr_n}人 / 購入率 {rate}")
+
+    logs = frames.get("action_logs.csv")
+    if logs is not None and len(logs) > 0:
+        # テストモード切替の自動記録は常に is_test=false（D-24）
+        auto = logs[logs["log_type"] != "manual"]
+        if auto["is_test"].any():
+            errors.append("action_logs.csv: テストモード切替の自動記録に is_test=true の行がある")
+        print("施策ログ:", logs["log_type"].value_counts().sort_index().to_dict())
 
     if errors:
         print("\nNG:")

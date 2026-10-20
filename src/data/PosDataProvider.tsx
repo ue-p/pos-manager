@@ -1,6 +1,7 @@
 // ログイン後の画面で使うデータの購読（D-11）。コレクション全体を購読し、未送信件数と通信状態を出す
 import { collection, doc, onSnapshot, type DocumentData, type QuerySnapshot } from 'firebase/firestore';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { normalizeActionLog } from '../domain/actionLog';
 import { DEFAULT_SETTINGS, type ActionLog, type RegisterClosing, type Settings, type Transaction, type VrVisit } from '../domain/types';
 import { getDeviceId, getRegisterId, setRegisterId as persistRegisterId } from '../lib/device';
 import { db } from '../lib/firebase';
@@ -28,7 +29,7 @@ export interface PosData {
 
 const PosDataContext = createContext<PosData | null>(null);
 
-function useCollection<T>(name: string): CollectionState<T> {
+function useCollection<T>(name: string, normalize: (raw: DocumentData) => T = (raw) => raw as T): CollectionState<T> {
   const [state, setState] = useState<CollectionState<T>>({ docs: [], pending: 0, fromCache: true });
   useEffect(() => {
     return onSnapshot(
@@ -36,13 +37,14 @@ function useCollection<T>(name: string): CollectionState<T> {
       { includeMetadataChanges: true },
       (snap: QuerySnapshot<DocumentData>) => {
         setState({
-          docs: snap.docs.map((d) => d.data() as T),
+          docs: snap.docs.map((d) => normalize(d.data())),
           pending: snap.docs.filter((d) => d.metadata.hasPendingWrites).length,
           fromCache: snap.metadata.fromCache,
         });
       },
       (err) => console.error(`[subscribe] ${name}`, err),
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- normalize はモジュール定数を渡す
   }, [name]);
   return state;
 }
@@ -65,7 +67,7 @@ function useNavigatorOnline(): boolean {
 export function PosDataProvider({ children }: { children: ReactNode }) {
   const transactions = useCollection<Transaction>('transactions');
   const vrVisits = useCollection<VrVisit>('vr_visits');
-  const actionLogs = useCollection<ActionLog>('action_logs');
+  const actionLogs = useCollection<ActionLog>('action_logs', normalizeActionLog as (raw: DocumentData) => ActionLog);
   const registerClosings = useCollection<RegisterClosing>('register_closings');
   const navOnline = useNavigatorOnline();
   const [settingsState, setSettingsState] = useState<{ settings: Settings; stored: boolean; pending: boolean }>({

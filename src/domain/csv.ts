@@ -42,7 +42,15 @@ export const TRANSACTIONS_COLUMNS = [
 
 export const VR_VISITS_COLUMNS = ['visit_id', 'timestamp', 'register_id', 'device_id', 'is_void', 'is_test'] as const;
 
-export const ACTION_LOGS_COLUMNS = ['log_id', 'timestamp', 'note', 'register_id', 'device_id', 'is_test'] as const;
+export const ACTION_LOGS_COLUMNS = [
+  'log_id',
+  'timestamp',
+  'log_type',
+  'note',
+  'register_id',
+  'device_id',
+  'is_test',
+] as const;
 
 export const REGISTER_CLOSINGS_COLUMNS = [
   'closing_id',

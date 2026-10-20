@@ -53,9 +53,25 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    function settingsAfter() {
+      return getAfter(/databases/$(database)/documents/settings/current).data;
+    }
+
+    // D-24：テストモード切替の記録は、同じバッチで settings が切り替わり、その記録を指している場合だけ作れる。
+    // 自動記録は常に is_test == false。
+    function isValidActionLog(id) {
+      let d = request.resource.data;
+      return d.log_id == id
+        && (d.log_type == 'manual'
+          || (d.log_type in ['test_mode_on', 'test_mode_off']
+            && d.is_test == false
+            && settingsAfter().get('test_mode_log_id', '') == id
+            && settingsAfter().get('test_mode', false) == (d.log_type == 'test_mode_on')));
+    }
+
     match /action_logs/{id} {
       allow read: if isStaff();
-      allow create: if isStaff() && request.resource.data.log_id == id;
+      allow create: if isStaff() && isValidActionLog(id);
       allow update: if isStaff() && isResendOnly();
       allow delete: if false;
     }
@@ -67,8 +83,22 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // D-24：test_mode を変える書き込みは、同じバッチで対応する施策ログ（test_mode_log_id）を作るときだけ通す
+    function isTestModeChangeLogged() {
+      let before = resource == null ? false : resource.data.get('test_mode', false);
+      let after = request.resource.data.get('test_mode', false);
+      let logId = request.resource.data.get('test_mode_log_id', '');
+      return before == after
+        || (logId is string && logId != ''
+          && !exists(/databases/$(database)/documents/action_logs/$(logId))
+          && getAfter(/databases/$(database)/documents/action_logs/$(logId)).data.log_type
+            == (after ? 'test_mode_on' : 'test_mode_off'));
+    }
+
     match /settings/{id} {
-      allow read, write: if isStaff();
+      allow read: if isStaff();
+      allow create, update: if isStaff() && isTestModeChangeLogged();
+      allow delete: if false;
     }
 
     // お客さん用画面の表示内容（会計データではないので上書き可）。読み取りは誰でも可

@@ -10,3 +10,4 @@ ui-debug.log
 .claude/settings.local.json
 test-results/
 playwright-report/
+hs_err_pid*.log

@@ -43,14 +43,32 @@ describe('CSV', () => {
     const log: ActionLog = {
       log_id: 'L1',
       timestamp: '2026-11-03T12:00:00+09:00',
+      log_type: 'manual',
       note: 'POP変更, "セット推し"\n値札も',
       register_id: 'reg_1',
       device_id: 'dev_a1b2',
       is_test: false,
     };
     expect(actionLogsCsv([log])).toBe(
-      'log_id,timestamp,note,register_id,device_id,is_test\nL1,2026-11-03T12:00:00+09:00,"POP変更, ""セット推し""\n値札も",reg_1,dev_a1b2,false\n',
+      'log_id,timestamp,log_type,note,register_id,device_id,is_test\nL1,2026-11-03T12:00:00+09:00,manual,"POP変更, ""セット推し""\n値札も",reg_1,dev_a1b2,false\n',
     );
+  });
+
+  it('action_logs.csv：テストモード切替の自動記録は log_type 付き・is_test=false で出る', () => {
+    const on: ActionLog = {
+      log_id: 'L2',
+      timestamp: '2026-11-03T08:00:00+09:00',
+      log_type: 'test_mode_on',
+      note: 'テストモードをオンにした',
+      register_id: 'reg_1',
+      device_id: 'dev_a1b2',
+      is_test: false,
+    };
+    const off: ActionLog = { ...on, log_id: 'L3', timestamp: '2026-11-03T08:30:00+09:00', log_type: 'test_mode_off', note: 'テストモードをオフにした' };
+    expect(actionLogsCsv([off, on]).trimEnd().split('\n').slice(1)).toEqual([
+      'L2,2026-11-03T08:00:00+09:00,test_mode_on,テストモードをオンにした,reg_1,dev_a1b2,false',
+      'L3,2026-11-03T08:30:00+09:00,test_mode_off,テストモードをオフにした,reg_1,dev_a1b2,false',
+    ]);
   });
 
   it('vr_visits.csv と register_closings.csv の列', () => {

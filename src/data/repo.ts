@@ -1,6 +1,6 @@
 // Firestore への書き込み。UI から直接 Firestore を呼ばない。
 // オフライン中は Promise がサーバー到達まで解決しないため、呼び出し側は await しない（D-11）。
-import { doc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { toLocalIsoString } from '../domain/time';
 import type { ActionLog, RegisterClosing, Settings, Transaction, VrVisit } from '../domain/types';
@@ -53,6 +53,23 @@ export function saveRegisterClosing(c: RegisterClosing): void {
   fireAndForget('レジ締め', setDoc(doc(db, 'register_closings', c.closing_id), { ...c, created_at: serverTimestamp() }));
 }
 
-export function saveSettings(patch: Partial<Settings>): void {
+/** 設定の保存。test_mode は setTestMode() でだけ変える（記録と一緒に書くため） */
+export function saveSettings(patch: Partial<Omit<Settings, 'test_mode'>>): void {
   fireAndForget('設定', setDoc(doc(db, 'settings', 'current'), { ...patch, updated_at: serverTimestamp() }, { merge: true }));
+}
+
+/**
+ * テストモードの切替と、その施策ログを1つのバッチで書く（D-24）。
+ * バッチは端末内でもサーバーでも全部反映か全部失敗のどちらかになり、オフライン中も一緒に保存・送信される。
+ * settings.test_mode_log_id で記録を指し、ルール側でも片方だけの書き込みを拒否する。
+ */
+export function setTestMode(on: boolean, log: ActionLog): void {
+  const batch = writeBatch(db);
+  batch.set(
+    doc(db, 'settings', 'current'),
+    { test_mode: on, test_mode_log_id: log.log_id, updated_at: serverTimestamp() },
+    { merge: true },
+  );
+  batch.set(doc(db, 'action_logs', log.log_id), { ...log, created_at: serverTimestamp() });
+  fireAndForget('テストモードの切替', batch.commit());
 }
