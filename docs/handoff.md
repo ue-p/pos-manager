@@ -24,7 +24,7 @@
   - `npm run test:rules`（セキュリティルール 24件）
   - `npm run test:e2e`（Playwright。当日の一連の操作。オフライン中の会計・テストモード切替・エクスポート記録を含む）
   - lint / typecheck / build
-- Firebase 本番プロジェクト：`dakken2026pos`（2026-10-21 作成。`.firebaserc` に設定）。`.env.local` は作成済みで、firebaseConfig の値はユーザーが貼り付ける。デプロイは未実施。開発・テストは Emulator（`demo-gakusai-pos`）
+- Firebase 本番プロジェクト：`dakken2026pos`（2026-10-21 作成。`.firebaserc` に設定）。`.env.local` 設定済み。2026-10-21 にデプロイ済み（https://dakken2026pos.web.app）。デプロイ後の確認は implementation-plan.md のフェーズ7。開発・テストは Emulator（`demo-gakusai-pos`）
 
 ## 次にやること（候補）
 
