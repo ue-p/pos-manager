@@ -14,6 +14,13 @@ export function hhmm(timestamp: string): string {
   return timestamp.slice(11, 16);
 }
 
+/** 経過時間（分）の表示。例：1分以内 / 25分 / 1時間5分 */
+export function formatElapsed(min: number): string {
+  if (min < 1) return '1分以内';
+  if (min < 60) return `${min}分`;
+  return `${Math.floor(min / 60)}時間${min % 60}分`;
+}
+
 export function percent(ratio: number | null): string {
   return ratio === null ? '—' : `${(ratio * 100).toFixed(1)}%`;
 }

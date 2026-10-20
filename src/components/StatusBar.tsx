@@ -1,17 +1,16 @@
 import { Link } from 'react-router-dom';
 import { usePos } from '../data/PosDataProvider';
-import { getLastExportAt, registerLabel } from '../lib/device';
+import { backupStatus, lastExportMs } from '../domain/actionLog';
+import { registerLabel } from '../lib/device';
+import { formatElapsed } from '../lib/format';
 import { useNow } from '../lib/useNow';
 
-export const BACKUP_WARN_MINUTES = 30;
-
-/** 通信状態・未送信件数・レジ番号・最終エクスポートからの経過（F-08, D-11） */
+/** 通信状態・未送信件数・レジ番号・最終エクスポートからの経過（F-08, D-11, D-25） */
 export function StatusBar() {
-  const { online, pendingCount, registerId } = usePos();
+  const { online, pendingCount, registerId, actionLogs } = usePos();
   const now = useNow(15_000);
-  const last = getLastExportAt();
-  const elapsedMin = last === null ? null : Math.floor((now - last) / 60_000);
-  const backupWarn = elapsedMin === null || elapsedMin >= BACKUP_WARN_MINUTES;
+  // 全端末の csv_export 記録のうち最新のもの（自端末のオフライン中の記録も含む）
+  const { elapsedMin, warn: backupWarn } = backupStatus(lastExportMs(actionLogs), now);
 
   return (
     <div className="status-bar">
@@ -26,10 +25,4 @@ export function StatusBar() {
       </Link>
     </div>
   );
-}
-
-function formatElapsed(min: number): string {
-  if (min < 1) return '1分以内';
-  if (min < 60) return `${min}分`;
-  return `${Math.floor(min / 60)}時間${min % 60}分`;
 }

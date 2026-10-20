@@ -1,7 +1,6 @@
 // 端末ごとの値（localStorage）。D-03
 const KEY_DEVICE = 'pos.device_id';
 const KEY_REGISTER = 'pos.register_id';
-const KEY_LAST_EXPORT = 'pos.last_export_at';
 
 export const REGISTER_IDS = ['reg_1', 'reg_2', 'reg_3', 'reg_4', 'reg_5', 'reg_6', 'reg_7', 'reg_8', 'reg_9'] as const;
 
@@ -44,16 +43,6 @@ export function getRegisterId(): string {
 
 export function setRegisterId(id: string): void {
   write(KEY_REGISTER, id);
-}
-
-/** 最後にCSVをエクスポートした時刻（ミリ秒）。未実施なら null */
-export function getLastExportAt(): number | null {
-  const v = read(KEY_LAST_EXPORT);
-  return v ? Number(v) : null;
-}
-
-export function setLastExportAt(ms: number): void {
-  write(KEY_LAST_EXPORT, String(ms));
 }
 
 export function registerLabel(id: string): string {

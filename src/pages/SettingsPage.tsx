@@ -4,17 +4,24 @@ import { useToast } from '../components/Toast';
 import { downloadExportZip } from '../data/exportZip';
 import { usePos } from '../data/PosDataProvider';
 import { saveActionLog, saveRegisterClosing, saveSettings, setTestMode } from '../data/repo';
-import { createManualLog, createTestModeLog } from '../domain/actionLog';
+import {
+  BACKUP_WARN_MINUTES,
+  backupStatus,
+  createCsvExportLog,
+  createManualLog,
+  createTestModeLog,
+  lastExportMs,
+  recentLogsForList,
+} from '../domain/actionLog';
 import { closingDifference, systemCashSales } from '../domain/aggregate';
 import { compareByTime } from '../domain/transaction';
 import { toLocalIsoString, todayLocalDate } from '../domain/time';
 import { DESIGNS, ITEM_LABELS, ITEMS, type Settings } from '../domain/types';
 import { logout } from '../lib/auth';
-import { getLastExportAt, REGISTER_IDS, registerLabel, setLastExportAt } from '../lib/device';
-import { hhmm, yen } from '../lib/format';
-import { useNow, notifyTick } from '../lib/useNow';
+import { REGISTER_IDS, registerLabel } from '../lib/device';
+import { formatElapsed, hhmm, yen } from '../lib/format';
+import { useNow } from '../lib/useNow';
 import { newUuid } from '../lib/uuid';
-import { BACKUP_WARN_MINUTES } from '../components/StatusBar';
 
 export function SettingsPage() {
   return (
@@ -83,20 +90,31 @@ function DeviceSection() {
 }
 
 function ExportSection() {
-  const { transactions, vrVisits, actionLogs, registerClosings, pendingCount } = usePos();
+  const { transactions, vrVisits, actionLogs, registerClosings, pendingCount, online, registerId, deviceId } = usePos();
   const toast = useToast();
   const now = useNow(15_000);
-  const last = getLastExportAt();
-  const elapsedMin = last === null ? null : Math.floor((now - last) / 60_000);
-  const warn = elapsedMin === null || elapsedMin >= BACKUP_WARN_MINUTES;
+  const lastLog = useMemo(
+    () => [...actionLogs].filter((l) => l.log_type === 'csv_export').sort((a, b) => compareByTime(b, a))[0],
+    [actionLogs],
+  );
+  const { elapsedMin, warn } = backupStatus(lastExportMs(actionLogs), now);
   const [busy, setBusy] = useState(false);
 
   const doExport = async () => {
     setBusy(true);
     try {
-      const name = await downloadExportZip({ transactions, vrVisits, actionLogs, registerClosings });
-      setLastExportAt(Date.now());
-      notifyTick();
+      const exportedAt = new Date();
+      const name = await downloadExportZip({ transactions, vrVisits, actionLogs, registerClosings }, registerId, exportedAt);
+      // 全端末で共通の「最後のエクスポート」にするため施策ログに記録する（D-25）。オフライン中も端末に残り、復帰後に送信される
+      saveActionLog(
+        createCsvExportLog({
+          logId: newUuid(),
+          timestamp: toLocalIsoString(exportedAt),
+          fileName: name,
+          registerId,
+          deviceId,
+        }),
+      );
       toast(`${name} を保存しました`);
     } catch (err) {
       console.error(err);
@@ -110,11 +128,17 @@ function ExportSection() {
     <section className="panel" id="export">
       <h2 className="panel-title">CSVエクスポート（バックアップ）</h2>
       <p className={warn ? 'warn-text' : 'muted'}>
-        {last === null
-          ? 'この端末ではまだエクスポートしていません'
-          : `最後のエクスポート：${toLocalIsoString(new Date(last)).slice(11, 16)}（${elapsedMin}分前）`}
+        {lastLog === undefined || elapsedMin === null
+          ? 'まだどの端末もエクスポートしていません'
+          : `最後のエクスポート（全端末）：${hhmm(lastLog.timestamp)} ${registerLabel(lastLog.register_id)}（${formatElapsed(elapsedMin)}前）`}
         {warn && ` ― ${BACKUP_WARN_MINUTES}分ごとに保存してください`}
       </p>
+      {(!online || pendingCount > 0) && (
+        <p className="warn-text">
+          {!online ? 'オフライン中です。' : `未送信が ${pendingCount}件あります。`}
+          エクスポートは「オンライン」かつ「未送信 0件」になってから行ってください。
+        </p>
+      )}
       <button className="btn btn--primary btn--lg" disabled={busy} onClick={doExport}>
         CSVをダウンロード（ZIP）
       </button>
@@ -276,7 +300,7 @@ function ActionLogSection() {
     setNote('');
   };
 
-  const recent = [...actionLogs].sort((a, b) => compareByTime(b, a)).slice(0, 10);
+  const recent = recentLogsForList(actionLogs);
 
   return (
     <section className="panel">

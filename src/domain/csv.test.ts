@@ -101,7 +101,8 @@ describe('CSV', () => {
   });
 
   it('ZIPのファイル名と中身のファイル名', () => {
-    expect(exportFileName(new Date(2026, 10, 3, 9, 5))).toBe('pos_export_20261103_0905.zip');
+    expect(exportFileName(new Date(2026, 10, 3, 9, 5, 7), 'reg_1')).toBe('pos_export_reg_1_20261103_090507.zip');
+    expect(exportFileName(new Date(2026, 10, 3, 23, 59, 59), 'reg_9')).toBe('pos_export_reg_9_20261103_235959.zip');
     expect(Object.keys(buildExportFiles({ transactions: [], vrVisits: [], actionLogs: [], registerClosings: [] }))).toEqual([
       'sales_lines.csv',
       'transactions.csv',

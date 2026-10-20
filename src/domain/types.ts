@@ -72,8 +72,8 @@ export interface VrVisit {
   is_test: boolean;
 }
 
-/** 施策ログの種類：手入力 / テストモードをオンにした / オフにした（D-24） */
-export const LOG_TYPES = ['manual', 'test_mode_on', 'test_mode_off'] as const;
+/** 施策ログの種類：手入力 / テストモードをオンにした / オフにした（D-24）/ CSVをエクスポートした（D-25） */
+export const LOG_TYPES = ['manual', 'test_mode_on', 'test_mode_off', 'csv_export'] as const;
 export type LogType = (typeof LOG_TYPES)[number];
 
 export interface ActionLog {

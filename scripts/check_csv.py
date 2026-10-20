@@ -1,7 +1,7 @@
 """エクスポートしたCSVを pandas で読み、列名・型・空欄なしを検査して簡単に集計する。
 
 使い方:
-    python scripts/check_csv.py pos_export_20261103_1430.zip
+    python scripts/check_csv.py pos_export_reg_1_20261103_143005.zip
     python scripts/check_csv.py 展開したフォルダ/
 
 前処理なしで読めること（要件 6.3）を確かめるため、read_csv は既定の引数のみで呼ぶ。
@@ -47,7 +47,7 @@ SCHEMAS: dict[str, dict[str, str]] = {
 CODES = {
     "item": {"design_1", "design_2", "design_3", "set"},
     "group_type": {"family", "student", "adult", "other", "unknown"},
-    "log_type": {"manual", "test_mode_on", "test_mode_off"},
+    "log_type": {"manual", "test_mode_on", "test_mode_off", "csv_export"},
 }
 
 TIMESTAMP_RE = r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$"
@@ -134,10 +134,10 @@ def main() -> int:
 
     logs = frames.get("action_logs.csv")
     if logs is not None and len(logs) > 0:
-        # テストモード切替の自動記録は常に is_test=false（D-24）
+        # 自動記録（テストモード切替 D-24・CSVエクスポート D-25）は常に is_test=false
         auto = logs[logs["log_type"] != "manual"]
         if auto["is_test"].any():
-            errors.append("action_logs.csv: テストモード切替の自動記録に is_test=true の行がある")
+            errors.append("action_logs.csv: 自動記録（test_mode_on/off・csv_export）に is_test=true の行がある")
         print("施策ログ:", logs["log_type"].value_counts().sort_index().to_dict())
 
     if errors:

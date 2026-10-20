@@ -58,11 +58,13 @@ service cloud.firestore {
     }
 
     // D-24：テストモード切替の記録は、同じバッチで settings が切り替わり、その記録を指している場合だけ作れる。
+    // D-25：CSVエクスポートの記録は単独で作れる。
     // 自動記録は常に is_test == false。
     function isValidActionLog(id) {
       let d = request.resource.data;
       return d.log_id == id
         && (d.log_type == 'manual'
+          || (d.log_type == 'csv_export' && d.is_test == false)
           || (d.log_type in ['test_mode_on', 'test_mode_off']
             && d.is_test == false
             && settingsAfter().get('test_mode_log_id', '') == id

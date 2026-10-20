@@ -156,8 +156,10 @@ export function buildExportFiles(data: ExportData): Record<string, string> {
   };
 }
 
-/** pos_export_YYYYMMDD_HHmm.zip */
-export function exportFileName(now: Date): string {
+/** pos_export_{register_id}_YYYYMMDD_HHmmss.zip（端末ローカル時刻。D-13, D-23） */
+export function exportFileName(now: Date, registerId: string): string {
   const p = (n: number) => String(n).padStart(2, '0');
-  return `pos_export_${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}_${p(now.getHours())}${p(now.getMinutes())}.zip`;
+  const date = `${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}`;
+  const time = `${p(now.getHours())}${p(now.getMinutes())}${p(now.getSeconds())}`;
+  return `pos_export_${registerId}_${date}_${time}.zip`;
 }

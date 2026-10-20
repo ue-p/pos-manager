@@ -1,5 +1,5 @@
 // 当日の流れを通しで確認する：ログイン → 会計 → お客さん用画面の同期 → オフライン会計 → 取消 → VR → 集計 → CSV
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
@@ -10,13 +10,30 @@ const shot = (page: Page, name: string) => page.screenshot({ path: path.join(SHO
 
 const tap = (page: Page, name: string | RegExp) => page.getByRole('button', { name, exact: typeof name === 'string' }).first().click();
 
+type FsValue = { stringValue?: string; booleanValue?: boolean };
+type ServerLog = { log_type: string; is_test: boolean; note: string };
+
+/** サーバー（Emulator）に届いている施策ログ。端末のキャッシュではなくサーバー側を見る（"Bearer owner" はルールを通さない管理者読み取り） */
+async function serverLogs(request: APIRequestContext): Promise<ServerLog[]> {
+  const res = await request.get(
+    'http://127.0.0.1:8080/v1/projects/demo-gakusai-pos/databases/(default)/documents/action_logs?pageSize=300',
+    { headers: { Authorization: 'Bearer owner' } },
+  );
+  const body = (await res.json()) as { documents?: { fields: Record<string, FsValue> }[] };
+  return (body.documents ?? []).map(({ fields }) => ({
+    log_type: fields.log_type?.stringValue ?? '',
+    is_test: fields.is_test?.booleanValue ?? true,
+    note: fields.note?.stringValue ?? '',
+  }));
+}
+
 // 毎回まっさらな Emulator から始める
 test.beforeEach(async ({ request }) => {
   await request.delete('http://127.0.0.1:8080/emulator/v1/projects/demo-gakusai-pos/databases/(default)/documents');
   await request.delete('http://127.0.0.1:9099/emulator/v1/projects/demo-gakusai-pos/accounts');
 });
 
-test('学祭当日の一連の操作', async ({ browser }) => {
+test('学祭当日の一連の操作', async ({ browser, request }) => {
   const staff = await browser.newContext();
   const page = await staff.newPage();
 
@@ -99,7 +116,7 @@ test('学祭当日の一連の操作', async ({ browser }) => {
   const downloadPromise = page.waitForEvent('download');
   await tap(page, 'CSVをダウンロード（ZIP）');
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toMatch(/^pos_export_\d{8}_\d{4}\.zip$/);
+  expect(download.suggestedFilename()).toMatch(/^pos_export_reg_1_\d{8}_\d{6}\.zip$/);
   const zipPath = path.join(SHOTS, download.suggestedFilename());
   await download.saveAs(zipPath);
   const out = execFileSync('python', ['scripts/check_csv.py', zipPath], {
@@ -110,6 +127,13 @@ test('学祭当日の一連の操作', async ({ browser }) => {
   expect(out).toContain('OK');
   expect(out).toContain('売上 900円');
   await expect(page.locator('.pill', { hasText: 'CSV保存' })).not.toHaveClass(/pill--warn/);
+  // エクスポートは施策ログに自動記録される（D-25）。設定画面の一覧には出さない
+  await expect(page.locator('#export')).toContainText('最後のエクスポート（全端末）');
+  await expect(page.locator('#export')).toContainText('レジ1（1分以内前）');
+  await expect(page.locator('.log-list')).not.toContainText('CSVをエクスポートした');
+  await expect.poll(async () => (await serverLogs(request)).filter((l) => l.log_type === 'csv_export')).toEqual([
+    { log_type: 'csv_export', is_test: false, note: `CSVをエクスポートした（${download.suggestedFilename()}）` },
+  ]);
   await shot(page, '06-settings');
 
   // ---- テストモード（D-24）：オフライン中に切り替えても、切替と記録が端末に残り、復帰後に一緒に届く ----
@@ -123,10 +147,22 @@ test('学祭当日の一連の操作', async ({ browser }) => {
   await expect(autoOn.locator('.tag--test')).toHaveCount(0); // 自動記録は is_test=false
   await expect(page.locator('.pill', { hasText: /未送信 [1-9]件/ })).toBeVisible();
   await shot(page, '10-offline-test-mode');
+  // オフライン中のエクスポート（D-25）：注意が出るが保存はでき、記録は端末に残って復帰後に送信される
+  await expect(page.getByText(/オフライン中です。エクスポートは/)).toBeVisible();
+  const offlineDl = page.waitForEvent('download');
+  await tap(page, 'CSVをダウンロード（ZIP）');
+  const offlineName = (await offlineDl).suggestedFilename();
+  await expect(page.locator('.log-list')).not.toContainText('CSVをエクスポートした');
+  // オフライン中はサーバーにまだ届いていない
+  expect((await serverLogs(request)).filter((l) => l.log_type === 'csv_export')).toHaveLength(1);
   await staff.setOffline(false);
   await expect(page.locator('.pill', { hasText: '未送信 0件' })).toBeVisible({ timeout: 30_000 });
+  // 復帰後に送信され、テストモード中でも is_test=false
+  await expect
+    .poll(async () => (await serverLogs(request)).find((l) => l.note.includes(offlineName)))
+    .toEqual({ log_type: 'csv_export', is_test: false, note: `CSVをエクスポートした（${offlineName}）` });
 
-  // 別の端末からログインして、サーバーに切替と記録の両方が届いていることを確認
+  // 別の端末からログインして、サーバーに切替・記録・エクスポート記録が届いていることを確認
   const device2 = await browser.newContext();
   const page2 = await device2.newPage();
   await page2.goto('/settings');
@@ -134,6 +170,10 @@ test('学祭当日の一連の操作', async ({ browser }) => {
   await page2.getByRole('button', { name: 'ログイン', exact: true }).click();
   await expect(page2.locator('.test-banner')).toBeVisible({ timeout: 15_000 });
   await expect(page2.locator('.log-list')).toContainText('テストモードをオンにした');
+  await expect(page2.locator('.log-list')).not.toContainText('CSVをエクスポートした');
+  // この端末は一度もエクスポートしていないが、「CSV保存」は全端末共通の値なので警告色にならない
+  await expect(page2.locator('.pill', { hasText: 'CSV保存' })).not.toHaveClass(/pill--warn/);
+  await expect(page2.locator('.pill', { hasText: 'CSV保存' })).toContainText('1分以内');
   await device2.close();
 
   // テストモード中の会計は集計から除外される
@@ -160,7 +200,8 @@ test('学祭当日の一連の操作', async ({ browser }) => {
     env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
   });
   console.log(out2);
-  expect(out2).toContain("施策ログ: {'manual': 1, 'test_mode_off': 1, 'test_mode_on': 1}");
+  // csv_export は1回目とオフライン中の2件（この ZIP 自身の記録は書き出し後に作られるので含まれない）
+  expect(out2).toContain("施策ログ: {'csv_export': 2, 'manual': 1, 'test_mode_off': 1, 'test_mode_on': 1}");
   expect(out2).toContain('OK');
 
   // ---- スマホ幅 ----

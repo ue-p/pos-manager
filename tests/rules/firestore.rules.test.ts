@@ -234,3 +234,29 @@ describe('テストモード切替と施策ログ（D-24）', () => {
     await assertFails(deleteDoc(doc(staffDb(), 'settings', 'current')));
   });
 });
+
+describe('CSVエクスポートの記録（D-25）', () => {
+  const exportLog = (id: string, extra: Record<string, unknown> = {}) => ({
+    log_id: id,
+    timestamp: '2026-11-03T14:30:00+09:00',
+    log_type: 'csv_export',
+    note: 'CSVをエクスポートした（pos_export_reg_1_20261103_143000.zip）',
+    register_id: 'reg_1',
+    device_id: 'dev_a1b2',
+    is_test: false,
+    ...extra,
+  });
+
+  it('is_test=false なら単独で作れ、再送も通る。更新・削除はできない', async () => {
+    await assertSucceeds(setDoc(doc(staffDb(), 'action_logs', 'e1'), exportLog('e1')));
+    await assertSucceeds(setDoc(doc(staffDb(), 'action_logs', 'e1'), { ...exportLog('e1'), created_at: serverTimestamp() }));
+    await assertFails(updateDoc(doc(staffDb(), 'action_logs', 'e1'), { note: '書き換え' }));
+    await assertFails(deleteDoc(doc(staffDb(), 'action_logs', 'e1')));
+  });
+
+  it('is_test=true にはできない。未ログイン・別アカウントは作れない', async () => {
+    await assertFails(setDoc(doc(staffDb(), 'action_logs', 'e2'), exportLog('e2', { is_test: true })));
+    await assertFails(setDoc(doc(otherDb(), 'action_logs', 'e3'), exportLog('e3')));
+    await assertFails(setDoc(doc(anonDb(), 'action_logs', 'e4'), exportLog('e4')));
+  });
+});
