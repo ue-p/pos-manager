@@ -7,7 +7,9 @@ describe('経過時間の表記', () => {
     expect(formatAgo(1)).toBe('1分前');
     expect(formatAgo(29)).toBe('29分前');
     expect(formatAgo(59)).toBe('59分前');
-    expect(formatAgo(60)).toBe('1時間0分前');
+    expect(formatAgo(60)).toBe('1時間前');
+    expect(formatAgo(61)).toBe('1時間1分前');
+    expect(formatAgo(120)).toBe('2時間前');
     expect(formatAgo(125)).toBe('2時間5分前');
   });
 
