@@ -1,0 +1,80 @@
+rules_version = '2';
+
+// D-16：部員共通アカウントだけが読み書きできる。display_state だけは誰でも読める。
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 部員共通アカウントのメールアドレス。
+    // 本番では Firebase コンソールで作ったアカウントに書き換え、.env.local の VITE_SHARED_ACCOUNT_EMAIL とそろえる。
+    function sharedEmail() {
+      return 'staff@gakusai-pos.example';
+    }
+
+    function isStaff() {
+      return request.auth != null && request.auth.token.email == sharedEmail();
+    }
+
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // 更新は取消（is_void / voided_at）だけ。オフライン復帰時の再送で created_at が変わるのは許す。
+    // 取消の取り消し（true → false）はできない。
+    function isVoidOnlyUpdate() {
+      return changedKeys().hasOnly(['is_void', 'voided_at', 'created_at'])
+        && (resource.data.is_void == false || request.resource.data.is_void == true)
+        && (request.resource.data.is_void == false || request.resource.data.voided_at is string);
+    }
+
+    // 作成のみの記録で、再送による created_at の更新だけ許す
+    function isResendOnly() {
+      return changedKeys().hasOnly(['created_at']);
+    }
+
+    match /transactions/{id} {
+      allow read: if isStaff();
+      allow create: if isStaff()
+        && request.resource.data.transaction_id == id
+        && request.resource.data.is_void == false
+        && request.resource.data.total is int
+        && request.resource.data.lines is list
+        && request.resource.data.is_test is bool;
+      allow update: if isStaff() && isVoidOnlyUpdate();
+      allow delete: if false;
+    }
+
+    match /vr_visits/{id} {
+      allow read: if isStaff();
+      allow create: if isStaff()
+        && request.resource.data.visit_id == id
+        && request.resource.data.is_void == false
+        && request.resource.data.is_test is bool;
+      allow update: if isStaff() && isVoidOnlyUpdate();
+      allow delete: if false;
+    }
+
+    match /action_logs/{id} {
+      allow read: if isStaff();
+      allow create: if isStaff() && request.resource.data.log_id == id;
+      allow update: if isStaff() && isResendOnly();
+      allow delete: if false;
+    }
+
+    match /register_closings/{id} {
+      allow read: if isStaff();
+      allow create: if isStaff() && request.resource.data.closing_id == id;
+      allow update: if isStaff() && isResendOnly();
+      allow delete: if false;
+    }
+
+    match /settings/{id} {
+      allow read, write: if isStaff();
+    }
+
+    // お客さん用画面の表示内容（会計データではないので上書き可）。読み取りは誰でも可
+    match /display_state/{registerId} {
+      allow read: if true;
+      allow write: if isStaff() && request.resource.data.register_id == registerId;
+    }
+  }
+}

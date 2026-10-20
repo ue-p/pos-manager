@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(npm install:*)",
+      "Bash(npm create vite:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npx prettier:*)",
+      "Bash(npx playwright:*)",
+      "Bash(npx firebase emulators:*)",
+      "Bash(python3 scripts/check_csv.py:*)",
+      "Bash(git status)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ],
+    "ask": [
+      "Bash(npx firebase deploy:*)",
+      "Bash(firebase deploy:*)",
+      "Bash(git push:*)"
+    ]
+  }
+}
