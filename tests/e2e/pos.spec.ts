@@ -129,7 +129,8 @@ test('学祭当日の一連の操作', async ({ browser, request }) => {
   await expect(page.locator('.pill', { hasText: 'CSV保存' })).not.toHaveClass(/pill--warn/);
   // エクスポートは施策ログに自動記録される（D-25）。設定画面の一覧には出さない
   await expect(page.locator('#export')).toContainText('最後のエクスポート（全端末）');
-  await expect(page.locator('#export')).toContainText('レジ1（1分以内前）');
+  await expect(page.locator('#export')).toContainText('レジ1（1分以内）');
+  await expect(page.locator('.pill', { hasText: 'CSV保存' })).toHaveText('CSV保存 1分以内');
   await expect(page.locator('.log-list')).not.toContainText('CSVをエクスポートした');
   await expect.poll(async () => (await serverLogs(request)).filter((l) => l.log_type === 'csv_export')).toEqual([
     { log_type: 'csv_export', is_test: false, note: `CSVをエクスポートした（${download.suggestedFilename()}）` },
@@ -173,7 +174,7 @@ test('学祭当日の一連の操作', async ({ browser, request }) => {
   await expect(page2.locator('.log-list')).not.toContainText('CSVをエクスポートした');
   // この端末は一度もエクスポートしていないが、「CSV保存」は全端末共通の値なので警告色にならない
   await expect(page2.locator('.pill', { hasText: 'CSV保存' })).not.toHaveClass(/pill--warn/);
-  await expect(page2.locator('.pill', { hasText: 'CSV保存' })).toContainText('1分以内');
+  await expect(page2.locator('.pill', { hasText: 'CSV保存' })).toHaveText('CSV保存 1分以内');
   await device2.close();
 
   // テストモード中の会計は集計から除外される

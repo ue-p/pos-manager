@@ -14,11 +14,11 @@ export function hhmm(timestamp: string): string {
   return timestamp.slice(11, 16);
 }
 
-/** 経過時間（分）の表示。例：1分以内 / 25分 / 1時間5分 */
-export function formatElapsed(min: number): string {
+/** 経過時間（分）の表示。「前」まで含める。例：1分以内 / 25分前 / 1時間5分前 */
+export function formatAgo(min: number): string {
   if (min < 1) return '1分以内';
-  if (min < 60) return `${min}分`;
-  return `${Math.floor(min / 60)}時間${min % 60}分`;
+  if (min < 60) return `${min}分前`;
+  return `${Math.floor(min / 60)}時間${min % 60}分前`;
 }
 
 export function percent(ratio: number | null): string {

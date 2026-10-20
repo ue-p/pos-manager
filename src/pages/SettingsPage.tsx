@@ -19,7 +19,7 @@ import { toLocalIsoString, todayLocalDate } from '../domain/time';
 import { DESIGNS, ITEM_LABELS, ITEMS, type Settings } from '../domain/types';
 import { logout } from '../lib/auth';
 import { REGISTER_IDS, registerLabel } from '../lib/device';
-import { formatElapsed, hhmm, yen } from '../lib/format';
+import { formatAgo, hhmm, yen } from '../lib/format';
 import { useNow } from '../lib/useNow';
 import { newUuid } from '../lib/uuid';
 
@@ -130,7 +130,7 @@ function ExportSection() {
       <p className={warn ? 'warn-text' : 'muted'}>
         {lastLog === undefined || elapsedMin === null
           ? 'まだどの端末もエクスポートしていません'
-          : `最後のエクスポート（全端末）：${hhmm(lastLog.timestamp)} ${registerLabel(lastLog.register_id)}（${formatElapsed(elapsedMin)}前）`}
+          : `最後のエクスポート（全端末）：${hhmm(lastLog.timestamp)} ${registerLabel(lastLog.register_id)}（${formatAgo(elapsedMin)}）`}
         {warn && ` ― ${BACKUP_WARN_MINUTES}分ごとに保存してください`}
       </p>
       {(!online || pendingCount > 0) && (
