@@ -1,0 +1,52 @@
+# 引き継ぎメモ（2026-10-20 時点）
+
+新しいチャットで作業を続けるためのメモ。仕様・決定・手順の本体は他のドキュメントにあるので、ここには
+「いまどこまで進んでいて、次に何をするか」と「ドキュメントに書かれていない作業上の注意」だけを書く。
+
+## 最初に読むもの
+
+1. `CLAUDE.md` — 作業ルール（守ること・やってはいけないこと）
+2. `docs/implementation-plan.md` — 進捗（フェーズ0〜6 完了、フェーズ7 未着手）
+3. `docs/decisions.md` — 実装上の決定 D-01〜D-24（D-19 以降が実装中に追加したもの）
+4. `docs/requirements.md` — 要件定義書（仕様の正。書き換えない）
+5. 必要に応じて `README.md`（セットアップ・本番公開手順）、`docs/operations.md`（当日の運用手順）
+
+## 現在の状態
+
+- 場所：`C:\DA研\Pos管理アプリ`（2026-10-20 に OneDrive から移動。元のフォルダは削除済み）
+- git：コミット2件、未コミットの変更なし
+  - `323c14f` フェーズ0〜6（必須 F-01〜F-11、推奨 F-12〜F-15）
+  - `89532b6` D-24：テストモード切替を施策ログに自動記録（`log_type` 列の追加を含む）
+- テスト：すべて合格
+  - `npm run test`（ドメイン 36件）
+  - `npm run test:rules`（セキュリティルール 22件）
+  - `npm run test:e2e`（Playwright。当日の一連の操作。オフライン中の会計・テストモード切替を含む）
+  - lint / typecheck / build
+- Firebase 本番プロジェクト：未作成。`.env.local` も未作成。開発は Emulator（`demo-gakusai-pos`）のみ
+
+## 次にやること（候補）
+
+1. **運営担当の確認待ち**
+   - D-06（テストモードは全端末で共有）と D-14（追加CSVの列構成。`action_logs.csv` は D-24 で `log_type` を追加済み）は、提案どおり実装済み。確認がとれたら状態を「確定」に直す
+2. **要件 8.2 の未決事項**：本番価格（割引の扱い）、学祭の日程と営業時間（日別集計の区切り。現状はカレンダー日付：D-17）、レジの台数と端末、会場の通信環境、釣銭準備金の額、客層「学生」「大人」の判断基準
+3. **フェーズ7（本番準備）**：`README.md` の「本番に出す」の手順
+   - Firebase プロジェクト作成、共通アカウント作成、新規登録の無効化
+   - `firestore.rules` の `sharedEmail()` と `.env.local` の `VITE_SHARED_ACCOUNT_EMAIL` を同じアドレスにする
+   - **デプロイはユーザーの明示的な指示があるまで実行しない**
+   - 2台以上でのリハーサル（同時入力、Wi-Fi 切断→復帰、2画面表示、30分ごとのCSV出力）
+4. 本番前の点検には `/preflight`、要件との突き合わせには `/check-req` が使える（`.claude/commands/`）
+
+## ドキュメントに書かれていない作業上の注意
+
+- **このPCはメモリに余裕がない**（15.5GB 中、空きが 1〜2GB のことがある）。Emulator（Java）が「insufficient memory」で落ちて、Node や Chromium も巻き込んで E2E が途中で失敗したことがある。Emulator を使うテストは Java のヒープを絞って実行すると安定する：
+  ```bash
+  JAVA_TOOL_OPTIONS=-Xmx512m npm run test:rules
+  JAVA_TOOL_OPTIONS=-Xmx384m npm run test:e2e
+  ```
+  落ちるとプロジェクト直下に `hs_err_pid*.log` ができる（`.gitignore` 済み）
+- **Java は 17** のため、`firebase-tools` は Java 17 で動く v13 系に固定している。v14 以降に上げると Emulator が動かない（Java 21 が必要）
+- E2E のスクリーンショットは既定で `test-results/shots/` に出る。`E2E_SHOTS_DIR` で場所を変えられる。テスト開始時に Emulator のデータとアカウントを消すので、何回でも実行できる
+- `scripts/check_csv.py` を Windows のターミナルから実行して日本語が化けるときは、`PYTHONIOENCODING=utf-8` を付ける
+- `crypto.randomUUID()` は https か localhost でしか使えないため、`src/lib/uuid.ts` に代替を用意してある（LAN の IP で開いたタブレットでも動くように）
+- お客さん用画面の「TEST」表示は、レジ画面が送る表示データで切り替わる。そのレジ番号のレジ画面が開いていないと反映されない（D-24 に既知の制約として記載。現状維持と決定済み）
+- `files.zip` はプロジェクト開始時に受け取った資料一式（中身は `CLAUDE.md`・`docs/` と同じ）。git の管理外
