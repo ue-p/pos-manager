@@ -20,7 +20,7 @@
   - `ef15960` D-14：transactions.csv に `total_sheets`・`set_qty` を追加
   - D-22/D-23/D-25：CSVエクスポートを施策ログに記録（`csv_export`）、「CSV保存」を全端末共通に、保存先を共有フォルダ1か所に、ZIP名にレジ番号と秒
 - テスト：すべて合格
-  - `npm run test`（ドメイン 41件）
+  - `npm run test`（ドメイン 44件）
   - `npm run test:rules`（セキュリティルール 24件）
   - `npm run test:e2e`（Playwright。当日の一連の操作。オフライン中の会計・テストモード切替・エクスポート記録を含む）
   - lint / typecheck / build

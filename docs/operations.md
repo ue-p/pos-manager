@@ -111,6 +111,7 @@ ZIP のファイル名は `pos_export_reg_1_20261103_143005.zip` のように、
 - 共有フォルダの**いちばん新しい ZIP**（ファイル名の日時が最新のもの）を使う。中身は全レジ分
 - ZIP の中身：`sales_lines.csv` / `transactions.csv` / `vr_visits.csv` / `action_logs.csv` / `register_closings.csv`
 - 取消・テストの行も入っている。集計では `is_void == False and is_test == False` で絞る
+- 日時の列は2つある。**Tableau では `local_datetime`**（`2026-11-03 14:05:22` の日本時間。日時として自動認識される）、**pandas では `timestamp`**（`+09:00` 付き。下の例のように `pd.to_datetime` で使う）
 - `action_logs.csv` の `log_type` が `csv_export` の行はエクスポートの記録（施策ではない）。施策の前後比較では `log_type == "manual"` で絞る
 - 中身の検査：`python scripts/check_csv.py pos_export_reg_1_YYYYMMDD_HHmmss.zip`
 

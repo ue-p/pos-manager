@@ -157,6 +157,15 @@ Firebase Hosting は SPA 用に全パスを `index.html` へ rewrite する。
   - `set_qty`（整数）：その会計のセットの個数＝明細のうち `item = set` の `quantity` の合計（セットが無ければ 0）。
   - どちらも Firestore には保存せず、CSV 出力時に会計ドキュメントから計算する。取消・テストの会計にも同じように値を入れる。
   - `scripts/check_csv.py` で、`total_sheets` が3列の合計と、`set_qty` が `sales_lines.csv` のセット明細の会計ごとの合計と一致することを検査する。
+- **`local_datetime` 列（2026-10-21 追加。5つのCSVすべて）**：
+  - `timestamp` 列を持つ5つのCSV（sales_lines / transactions / vr_visits / action_logs / register_closings）すべてで、`timestamp` の**直後**に `local_datetime` を置く。上の表の列順は、それぞれ `timestamp` の後ろに `local_datetime` が入ったものと読み替える。
+  - 形式：`2026-11-03 14:05:22`（日本時間、秒まで、タイムゾーン表記なし）。
+  - 値は `timestamp` と同じ時刻を**日本時間（Asia/Tokyo）**で表したもの。端末のタイムゾーン設定に左右されないよう、`timestamp` を絶対時刻に直してから UTC+9 に変換する（日本時間はサマータイムが無いので +9 時間固定）。Firestore には保存せず、CSV 出力時に計算する。
+  - `timestamp` 列は変更せずに残す。
+  - 理由：Tableau はオフセット付き ISO 8601（`2026-11-03T14:05:22+09:00`）を日時と自動認識せず、文字列として読み込むため（2026-10-21 にユーザーが確認）。
+  - **使い分け**：Tableau では `local_datetime`（日時として自動認識される）、pandas では `timestamp`（`pd.to_datetime` でタイムゾーン付きの日時になる。`local_datetime` は既定では文字列として読まれる）。
+  - sales_lines.csv は要件 6.2 で列が決まっているが、この列の追加はユーザーの指示による（要件定義書そのものは書き換えない）。
+  - `scripts/check_csv.py` で、`local_datetime` が形式どおりか、`timestamp` を日本時間にした値と一致するかを検査する。
 - レジ締め（F-13）の保存先は要件 6.4 に無いため、コレクション `register_closings` を追加する。
 - `counted_cash` は「数えた現金の総額」、`difference = (counted_cash − float_amount) − system_cash_sales`。
 

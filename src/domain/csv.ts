@@ -1,4 +1,5 @@
 // 分析用CSV（要件 6.1〜6.3、D-13、D-14）。列名・列順を変えると分析スクリプトが壊れるので注意
+import { toJstDatetime } from './time';
 import { compareByTime } from './transaction';
 import type { ActionLog, RegisterClosing, Transaction, VrVisit } from './types';
 
@@ -8,6 +9,7 @@ export const SALES_LINES_COLUMNS = [
   'transaction_id',
   'line_no',
   'timestamp',
+  'local_datetime',
   'item',
   'quantity',
   'unit_price',
@@ -26,6 +28,7 @@ export const SALES_LINES_COLUMNS = [
 export const TRANSACTIONS_COLUMNS = [
   'transaction_id',
   'timestamp',
+  'local_datetime',
   'group_type',
   'group_size',
   'total',
@@ -42,11 +45,12 @@ export const TRANSACTIONS_COLUMNS = [
   'is_test',
 ] as const;
 
-export const VR_VISITS_COLUMNS = ['visit_id', 'timestamp', 'register_id', 'device_id', 'is_void', 'is_test'] as const;
+export const VR_VISITS_COLUMNS = ['visit_id', 'timestamp', 'local_datetime', 'register_id', 'device_id', 'is_void', 'is_test'] as const;
 
 export const ACTION_LOGS_COLUMNS = [
   'log_id',
   'timestamp',
+  'local_datetime',
   'log_type',
   'note',
   'register_id',
@@ -57,6 +61,7 @@ export const ACTION_LOGS_COLUMNS = [
 export const REGISTER_CLOSINGS_COLUMNS = [
   'closing_id',
   'timestamp',
+  'local_datetime',
   'business_date',
   'register_id',
   'device_id',
@@ -82,7 +87,8 @@ export function toCsv<C extends string>(columns: readonly C[], rows: Record<C, C
 function pick<C extends string>(columns: readonly C[], src: Record<string, unknown>): Record<C, Cell> {
   const out = {} as Record<C, Cell>;
   for (const c of columns) {
-    const v = src[c];
+    // local_datetime は保存せず、timestamp を日本時間にして出す（Tableau 用。D-14）
+    const v = c === 'local_datetime' ? toJstDatetime(String(src.timestamp)) : src[c];
     if (v === undefined || v === null) throw new Error(`CSV列 ${c} の値がありません`);
     out[c] = v as Cell;
   }

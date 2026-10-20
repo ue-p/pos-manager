@@ -22,24 +22,24 @@ STR = "str"
 
 SCHEMAS: dict[str, dict[str, str]] = {
     "sales_lines.csv": {
-        "transaction_id": STR, "line_no": INT, "timestamp": STR, "item": STR, "quantity": INT,
+        "transaction_id": STR, "line_no": INT, "timestamp": STR, "local_datetime": STR, "item": STR, "quantity": INT,
         "unit_price": INT, "amount": INT, "design_1_qty": INT, "design_2_qty": INT, "design_3_qty": INT,
         "group_type": STR, "group_size": INT, "register_id": STR, "device_id": STR,
         "is_void": BOOL, "is_test": BOOL,
     },
     "transactions.csv": {
-        "transaction_id": STR, "timestamp": STR, "group_type": STR, "group_size": INT, "total": INT,
+        "transaction_id": STR, "timestamp": STR, "local_datetime": STR, "group_type": STR, "group_size": INT, "total": INT,
         "received": INT, "change": INT, "design_1_qty": INT, "design_2_qty": INT, "design_3_qty": INT,
         "total_sheets": INT, "set_qty": INT, "register_id": STR, "device_id": STR, "is_void": BOOL, "is_test": BOOL,
     },
     "vr_visits.csv": {
-        "visit_id": STR, "timestamp": STR, "register_id": STR, "device_id": STR, "is_void": BOOL, "is_test": BOOL,
+        "visit_id": STR, "timestamp": STR, "local_datetime": STR, "register_id": STR, "device_id": STR, "is_void": BOOL, "is_test": BOOL,
     },
     "action_logs.csv": {
-        "log_id": STR, "timestamp": STR, "log_type": STR, "note": STR, "register_id": STR, "device_id": STR, "is_test": BOOL,
+        "log_id": STR, "timestamp": STR, "local_datetime": STR, "log_type": STR, "note": STR, "register_id": STR, "device_id": STR, "is_test": BOOL,
     },
     "register_closings.csv": {
-        "closing_id": STR, "timestamp": STR, "business_date": STR, "register_id": STR, "device_id": STR,
+        "closing_id": STR, "timestamp": STR, "local_datetime": STR, "business_date": STR, "register_id": STR, "device_id": STR,
         "system_cash_sales": INT, "counted_cash": INT, "float_amount": INT, "difference": INT, "is_test": BOOL,
     },
 }
@@ -51,6 +51,9 @@ CODES = {
 }
 
 TIMESTAMP_RE = r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$"
+# 日本時間（Asia/Tokyo）は UTC+9 固定（サマータイムなし）。tzdata が無い Windows でも動くよう固定値で変換する
+JST_OFFSET = pd.Timedelta(hours=9)
+LOCAL_DATETIME_RE = r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$"
 
 
 def load(source: Path) -> dict[str, bytes]:
@@ -81,6 +84,13 @@ def check(name: str, raw: bytes, errors: list[str]) -> pd.DataFrame | None:
             errors.append(f"{name}.{col}: 真偽値として読めない（{dtype}）")
     if not df["timestamp"].astype(str).str.match(TIMESTAMP_RE).all():
         errors.append(f"{name}.timestamp: オフセット付きISO 8601でない行がある")
+    # local_datetime（Tableau 用。D-14）：形式と、timestamp を日本時間にしたものと一致するか
+    local = df["local_datetime"].astype(str)
+    if not local.str.match(LOCAL_DATETIME_RE).all():
+        errors.append(f"{name}.local_datetime: 「YYYY-MM-DD HH:MM:SS」でない行がある")
+    jst = (pd.to_datetime(df["timestamp"], utc=True, errors="coerce") + JST_OFFSET).dt.strftime("%Y-%m-%d %H:%M:%S")
+    if not (local == jst).all():
+        errors.append(f"{name}.local_datetime: timestamp を日本時間にした値と一致しない行がある")
     for col, allowed in CODES.items():
         if col in df.columns:
             bad = set(df[col]) - allowed
