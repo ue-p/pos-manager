@@ -34,6 +34,8 @@ export const TRANSACTIONS_COLUMNS = [
   'design_1_qty',
   'design_2_qty',
   'design_3_qty',
+  'total_sheets',
+  'set_qty',
   'register_id',
   'device_id',
   'is_void',
@@ -106,10 +108,18 @@ export function salesLinesCsv(txs: Transaction[]): string {
   return toCsv(SALES_LINES_COLUMNS, rows);
 }
 
+/** transactions.csv の派生列（保存せず明細から計算する。D-14） */
+function derivedTransactionColumns(t: Transaction): { total_sheets: number; set_qty: number } {
+  return {
+    total_sheets: t.design_1_qty + t.design_2_qty + t.design_3_qty,
+    set_qty: t.lines.filter((l) => l.item === 'set').reduce((s, l) => s + l.quantity, 0),
+  };
+}
+
 export function transactionsCsv(txs: Transaction[]): string {
   return toCsv(
     TRANSACTIONS_COLUMNS,
-    sortedByTime(txs, 'transaction_id').map((t) => pick(TRANSACTIONS_COLUMNS, { ...t })),
+    sortedByTime(txs, 'transaction_id').map((t) => pick(TRANSACTIONS_COLUMNS, { ...t, ...derivedTransactionColumns(t) })),
   );
 }
 

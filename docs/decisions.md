@@ -141,16 +141,21 @@ Firebase Hosting は SPA 用に全パスを `index.html` へ rewrite する。
 - ダウンロードは ZIP 1つにまとめる：`pos_export_YYYYMMDD_HHmm.zip`（中身のファイル名は要件どおり `sales_lines.csv` などで固定。分析スクリプトを変えずに済む）。
 - Excel で開いたときの文字化けは許容する（分析の主対象は pandas / Tableau のため）。
 
-## D-14 要件で列が定義されていないCSV（状態：提案どおり実装済み。運営担当の確認待ち）
+## D-14 要件で列が定義されていないCSV（状態：確定）
 
 | ファイル | 列 |
 | --- | --- |
-| transactions.csv | transaction_id, timestamp, group_type, group_size, total, received, change, design_1_qty, design_2_qty, design_3_qty, register_id, device_id, is_void, is_test |
+| transactions.csv | transaction_id, timestamp, group_type, group_size, total, received, change, design_1_qty, design_2_qty, design_3_qty, total_sheets, set_qty, register_id, device_id, is_void, is_test（total_sheets・set_qty は 2026-10-20 に追加） |
 | vr_visits.csv | visit_id, timestamp, register_id, device_id, is_void, is_test |
 | action_logs.csv | log_id, timestamp, log_type, note, register_id, device_id, is_test（log_type は 2026-10-20 に追加。D-24） |
 | register_closings.csv | closing_id, timestamp, business_date, register_id, device_id, system_cash_sales, counted_cash, float_amount, difference, is_test |
 
-- transactions.csv の列順は要件 6.2 末尾の記述どおり。
+- transactions.csv の列順は要件 6.2 末尾の記述どおり（`total_sheets`・`set_qty` は「絵柄別枚数の合計」の直後に追加）。
+- transactions.csv の追加列（2026-10-20 確定）：
+  - `total_sheets`（整数）：その会計で出ていった合計枚数＝`design_1_qty + design_2_qty + design_3_qty`。
+  - `set_qty`（整数）：その会計のセットの個数＝明細のうち `item = set` の `quantity` の合計（セットが無ければ 0）。
+  - どちらも Firestore には保存せず、CSV 出力時に会計ドキュメントから計算する。取消・テストの会計にも同じように値を入れる。
+  - `scripts/check_csv.py` で、`total_sheets` が3列の合計と、`set_qty` が `sales_lines.csv` のセット明細の会計ごとの合計と一致することを検査する。
 - レジ締め（F-13）の保存先は要件 6.4 に無いため、コレクション `register_closings` を追加する。
 - `counted_cash` は「数えた現金の総額」、`difference = (counted_cash − float_amount) − system_cash_sales`。
 

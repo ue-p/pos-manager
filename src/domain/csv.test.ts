@@ -29,10 +29,25 @@ describe('CSV', () => {
     const early = { ...tx(['design_2'], { timestamp: '2026-11-03T09:00:00+09:00', is_test: true }), transaction_id: 'A' };
     const lines = transactionsCsv([late, early]).trimEnd().split('\n');
     expect(lines[0]).toBe(
-      'transaction_id,timestamp,group_type,group_size,total,received,change,design_1_qty,design_2_qty,design_3_qty,register_id,device_id,is_void,is_test',
+      'transaction_id,timestamp,group_type,group_size,total,received,change,design_1_qty,design_2_qty,design_3_qty,total_sheets,set_qty,register_id,device_id,is_void,is_test',
     );
-    expect(lines[1]).toBe('A,2026-11-03T09:00:00+09:00,student,2,200,10000,9800,0,1,0,reg_1,dev_a1b2,false,true');
-    expect(lines[2]).toBe('B,2026-11-03T15:00:00+09:00,student,2,500,10000,9500,1,1,1,reg_1,dev_a1b2,true,false');
+    expect(lines[1]).toBe('A,2026-11-03T09:00:00+09:00,student,2,200,10000,9800,0,1,0,1,0,reg_1,dev_a1b2,false,true');
+    expect(lines[2]).toBe('B,2026-11-03T15:00:00+09:00,student,2,500,10000,9500,1,1,1,3,1,reg_1,dev_a1b2,true,false');
+  });
+
+  it('transactions.csv：total_sheets は3絵柄の枚数の合計、set_qty はセットの個数（取消・テストの会計にも入る）', () => {
+    const t = { ...tx(['set', 'set', 'design_1'], { is_void: true, is_test: true }), transaction_id: 'C' };
+    const [header, row] = transactionsCsv([t]).trimEnd().split('\n');
+    const cells = Object.fromEntries(header.split(',').map((c, i) => [c, row.split(',')[i]]));
+    expect(cells).toMatchObject({
+      design_1_qty: '3',
+      design_2_qty: '2',
+      design_3_qty: '2',
+      total_sheets: '7',
+      set_qty: '2',
+      is_void: 'true',
+      is_test: 'true',
+    });
   });
 
   it('メモにカンマ・改行・ダブルクォートを含んでも崩れない', () => {

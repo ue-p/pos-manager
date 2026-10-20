@@ -30,7 +30,7 @@ SCHEMAS: dict[str, dict[str, str]] = {
     "transactions.csv": {
         "transaction_id": STR, "timestamp": STR, "group_type": STR, "group_size": INT, "total": INT,
         "received": INT, "change": INT, "design_1_qty": INT, "design_2_qty": INT, "design_3_qty": INT,
-        "register_id": STR, "device_id": STR, "is_void": BOOL, "is_test": BOOL,
+        "total_sheets": INT, "set_qty": INT, "register_id": STR, "device_id": STR, "is_void": BOOL, "is_test": BOOL,
     },
     "vr_visits.csv": {
         "visit_id": STR, "timestamp": STR, "register_id": STR, "device_id": STR, "is_void": BOOL, "is_test": BOOL,
@@ -110,6 +110,14 @@ def main() -> int:
         merged = txs.set_index("transaction_id")["total"].to_frame().join(line_totals)
         if not (merged["total"] == merged["amount"]).all():
             errors.append("transactions.csv の total と明細の合計が一致しない会計がある")
+        # total_sheets = 3絵柄の枚数の合計、set_qty = 明細のセット個数の合計（D-14。取消・テストも含めて検査）
+        sheets = txs["design_1_qty"] + txs["design_2_qty"] + txs["design_3_qty"]
+        if not (txs["total_sheets"] == sheets).all():
+            errors.append("transactions.csv の total_sheets が design_1_qty〜design_3_qty の合計と一致しない会計がある")
+        set_lines = lines[lines["item"] == "set"].groupby("transaction_id")["quantity"].sum()
+        expected_sets = txs["transaction_id"].map(set_lines).fillna(0).astype(int)
+        if not (txs["set_qty"] == expected_sets).all():
+            errors.append("transactions.csv の set_qty が sales_lines.csv のセットの個数の合計と一致しない会計がある")
 
         valid = txs[~txs["is_void"] & ~txs["is_test"]]
         valid_lines = lines[~lines["is_void"] & ~lines["is_test"]]
