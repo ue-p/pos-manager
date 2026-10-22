@@ -50,6 +50,123 @@
   }
 }
 
+/* ---------- 配色パターン（プレビュー：?palette=a|b|c で切替。案が決まったら1つに絞る） ----------
+   共通の考え方
+   - 絵柄の色（--d1〜--d3）は画像の代表色から決め、どのパターンでも同じ系統にする（案1=赤、案2=紫、案3=ミント）
+     ・--dN：縁取り・帯、--dN-ink：文字（背景に対しコントラスト4.5以上）、--dN-soft：薄い塗り
+     ・セットは3絵柄の色をつないだ縁取り（--set-edge）。単色にしない（確定ボタンの色とまぎれないように）
+   - 「会計確定」（--confirm）と「取消」（--undo）は、絵柄の色・他のボタンと重ならない色にする
+   - 選択中の客層・人数・ナビ等は --accent（濃い無彩色）にして、確定ボタンとまぎれないようにする */
+:root[data-palette='a'] {
+  /* A ポップ：クリーム地に白いカード、絵柄色で塗ったタイル。確定＝青、取消＝オレンジ */
+  color-scheme: light;
+  --bg: #fff7ee;
+  --surface: #ffffff;
+  --surface-2: #fbefe2;
+  --border: #ecd9c6;
+  --text: #2a2320;
+  --text-2: #5e534c;
+  --muted: #7d716a;
+  --accent: #2a2320;
+  --accent-ink: #ffffff;
+  --accent-soft: #f6e6d4;
+  --series-1: #1d5fd6;
+  --grid: #f0e2d3;
+  --confirm: #1d5fd6;
+  --confirm-ink: #ffffff;
+  --undo: #c2410c;
+  --undo-ink: #ffffff;
+  --d1: #b95059;
+  --d1-ink: #9a3a44;
+  --d1-soft: #f8e4e6;
+  --d2: #8048b8;
+  --d2-ink: #6b37a3;
+  --d2-soft: #eee4f8;
+  --d3: #5cc49a;
+  --d3-ink: #1d6e55;
+  --d3-soft: #ddf5e9;
+  --set-ink: #2a2320;
+  --set-soft: #fff3e3;
+  --set-edge: linear-gradient(90deg, var(--d1), var(--d2), var(--d3));
+  --warn: #8a4b00;
+  --warn-soft: #fdf0d9;
+  --display-bg: radial-gradient(circle at 20% 10%, #ffe9d6, #fff7ee 55%);
+}
+:root[data-palette='b'] {
+  /* B ナイト：濃紺地。画像と絵柄色の縁取りが映える（外部モニター・暗めの会場向け）。確定＝黄、取消＝コーラル */
+  color-scheme: dark;
+  --bg: #14161f;
+  --surface: #1f2230;
+  --surface-2: #2a2e3f;
+  --border: #3a3f55;
+  --text: #f4f2ee;
+  --text-2: #c9c5bd;
+  --muted: #9b978f;
+  --accent: #f4f2ee;
+  --accent-ink: #14161f;
+  --accent-soft: #343a52;
+  --series-1: #6ea8ff;
+  --grid: #2e3245;
+  --ok: #4cc283;
+  --ok-soft: #173325;
+  --bad: #f07272;
+  --bad-soft: #3d1a1a;
+  --confirm: #ffd23f;
+  --confirm-ink: #141414;
+  --undo: #ff8a65;
+  --undo-ink: #141414;
+  --d1: #e0707c;
+  --d1-ink: #ff9aa5;
+  --d1-soft: #3b2027;
+  --d2: #a873e6;
+  --d2-ink: #d2a8ff;
+  --d2-soft: #2e2342;
+  --d3: #6fd6ad;
+  --d3-ink: #8fe6c4;
+  --d3-soft: #18372d;
+  --set-ink: #f4f2ee;
+  --set-soft: #262a3a;
+  --set-edge: linear-gradient(90deg, var(--d1), var(--d2), var(--d3));
+  --warn: #ffc46b;
+  --warn-soft: #3a2a10;
+  --display-bg: radial-gradient(circle at 50% 0%, #23283a, #14161f 60%);
+}
+:root[data-palette='c'] {
+  /* C 和紙：生成り地に墨色の文字。絵柄色はボタン左の帯と小さな印だけにして落ち着かせる。確定＝藍、取消＝朱 */
+  color-scheme: light;
+  --bg: #f3ede1;
+  --surface: #fbf8f1;
+  --surface-2: #ece4d4;
+  --border: #d8ccb4;
+  --text: #2b2622;
+  --text-2: #5a5148;
+  --muted: #7a7064;
+  --accent: #2b2622;
+  --accent-ink: #fbf8f1;
+  --accent-soft: #e6dcc8;
+  --series-1: #1e3a6e;
+  --grid: #e3d9c6;
+  --confirm: #1e3a6e;
+  --confirm-ink: #ffffff;
+  --undo: #b8371a;
+  --undo-ink: #ffffff;
+  --d1: #b95059;
+  --d1-ink: #9a3a44;
+  --d1-soft: #f8e4e6;
+  --d2: #8048b8;
+  --d2-ink: #6b37a3;
+  --d2-soft: #eee4f8;
+  --d3: #5cc49a;
+  --d3-ink: #1d6e55;
+  --d3-soft: #ddf5e9;
+  --set-ink: #2b2622;
+  --set-soft: #fbf8f1;
+  --set-edge: linear-gradient(180deg, var(--d1), var(--d2), var(--d3));
+  --warn: #8a4b00;
+  --warn-soft: #fdf0d9;
+  --display-bg: #f3ede1;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -1189,5 +1306,271 @@ input[aria-invalid='true'] {
   }
   .cart-list li {
     grid-template-columns: 1fr auto 72px;
+  }
+}
+
+/* ---------- 絵柄の画像と色（デザイン案） ---------- */
+.tone-d1 {
+  --tone: var(--d1);
+  --tone-ink: var(--d1-ink);
+  --tone-soft: var(--d1-soft);
+}
+.tone-d2 {
+  --tone: var(--d2);
+  --tone-ink: var(--d2-ink);
+  --tone-soft: var(--d2-soft);
+}
+.tone-d3 {
+  --tone: var(--d3);
+  --tone-ink: var(--d3-ink);
+  --tone-soft: var(--d3-soft);
+}
+.tone-set {
+  --tone: var(--border);
+  --tone-ink: var(--set-ink);
+  --tone-soft: var(--set-soft);
+}
+.item-art {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+}
+.item-art img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  user-select: none;
+}
+.item-art--set img {
+  width: 46%;
+  max-width: none;
+}
+.item-art--set img + img {
+  margin-left: -16%;
+}
+
+/* 商品ボタン：画像＋名前（絵柄色）＋価格＋残数 */
+.item-btn {
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 10px 14px;
+  text-align: left;
+  border: 3px solid var(--tone);
+  background: var(--tone-soft);
+  color: var(--text);
+}
+.item-btn:active:not(:disabled) {
+  background: var(--tone-soft);
+  filter: brightness(0.95);
+}
+.item-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.item-btn .item-name {
+  color: var(--tone-ink);
+  line-height: 1.15;
+}
+.item-btn .item-stock {
+  color: var(--text-2);
+}
+.item-btn--set {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--tone-soft), var(--tone-soft)) padding-box,
+    var(--set-edge) border-box;
+}
+/* 残りわずか：絵柄の色は残し、外側の太い枠と文字で知らせる（色だけに頼らない） */
+.item-btn--low {
+  box-shadow: 0 0 0 3px var(--warn);
+}
+.item-btn--low .item-stock {
+  color: var(--warn);
+}
+.item-count {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* 在庫表示：ボタンと同じ絵柄色のチップ */
+.stock-line {
+  gap: 6px;
+}
+.stock-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 12px 2px 4px;
+  border-radius: 999px;
+  border: 2px solid var(--tone);
+  background: var(--tone-soft);
+  color: var(--tone-ink);
+  font-weight: 700;
+}
+.stock-chip .item-art {
+  width: 28px;
+  height: 28px;
+}
+.stock-line .stock-chip.low {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+.stock-chip strong {
+  font-size: 0.8rem;
+}
+
+/* カート：絵柄色の帯と小さな画像 */
+.cart-list li {
+  border-left: 6px solid var(--tone);
+  padding-left: 8px;
+}
+.cart-list li.tone-set {
+  border-image: linear-gradient(180deg, var(--d1), var(--d2), var(--d3)) 1;
+}
+.cart-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--tone-ink);
+}
+.cart-name .item-art {
+  width: 40px;
+  height: 40px;
+}
+
+/* 会計確定・取消：他のボタンと明確に区別する（色＋形＋記号） */
+.btn--strong {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.btn--confirm {
+  background: var(--confirm);
+  border-color: var(--confirm);
+  color: var(--confirm-ink);
+  box-shadow: 0 4px 0 rgb(0 0 0 / 0.22);
+  letter-spacing: 0.08em;
+}
+.btn--confirm:hover:not(:disabled) {
+  background: var(--confirm);
+  filter: brightness(1.08);
+}
+.btn--confirm:disabled {
+  box-shadow: none;
+}
+.btn--undo {
+  background: var(--undo);
+  border-color: var(--undo);
+  color: var(--undo-ink);
+}
+.btn--undo:hover:not(:disabled) {
+  background: var(--undo);
+  filter: brightness(1.08);
+}
+.btn-mark {
+  font-size: 1.15em;
+  line-height: 1;
+}
+.btn--undo small {
+  font-weight: 400;
+  opacity: 0.9;
+}
+
+/* お客さん用画面：待機中は商品の画像を大きく */
+.display {
+  background: var(--display-bg, var(--bg));
+}
+.display-menu {
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 42vw), 1fr));
+}
+.menu-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border: 4px solid var(--tone);
+  background: var(--tone-soft);
+  padding: clamp(12px, 2vw, 24px) 12px;
+}
+.menu-card--set {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--tone-soft), var(--tone-soft)) padding-box,
+    var(--set-edge) border-box;
+}
+.menu-art {
+  width: 100%;
+  height: clamp(120px, 30vh, 320px);
+}
+.menu-card .menu-name {
+  color: var(--tone-ink);
+}
+.menu-card .menu-price {
+  color: var(--text);
+}
+.display-line-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--tone-ink);
+  font-weight: 700;
+}
+.display-line-name .item-art {
+  width: clamp(40px, 7vw, 72px);
+  height: clamp(40px, 7vw, 72px);
+}
+
+/* C 和紙：塗りを使わず、左（お客さん用画面は上）の帯で絵柄色を示す */
+:root[data-palette='c'] .item-btn,
+:root[data-palette='c'] .menu-card {
+  background: var(--surface);
+  border: 2px solid var(--border);
+}
+:root[data-palette='c'] .item-btn {
+  border-left: 12px solid var(--tone);
+}
+:root[data-palette='c'] .menu-card {
+  border-top: 12px solid var(--tone);
+}
+:root[data-palette='c'] .item-btn--set {
+  border-left-color: transparent;
+  background: var(--set-edge) 0 0 / 12px 100% no-repeat border-box, var(--surface);
+}
+:root[data-palette='c'] .menu-card--set {
+  border-top-color: transparent;
+  background: linear-gradient(90deg, var(--d1), var(--d2), var(--d3)) 0 0 / 100% 12px no-repeat border-box, var(--surface);
+}
+:root[data-palette='c'] .stock-chip {
+  background: var(--surface);
+}
+
+@media (max-width: 600px) {
+  /* スマホ：画像を上、文字を下にして、個数のバッジと名前が重ならないようにする */
+  .item-btn {
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    padding: 8px 6px;
+    text-align: center;
+  }
+  .item-btn .item-text {
+    align-items: center;
+  }
+  .item-btn .item-art {
+    width: 48px;
+    height: 48px;
+  }
+  .cart-name .item-art {
+    width: 32px;
+    height: 32px;
+  }
+  .menu-art {
+    height: clamp(96px, 18vh, 160px);
   }
 }

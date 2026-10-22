@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { subscribeDisplay, type DisplayState } from '../data/displaySync';
 import { ITEM_LABELS, ITEMS } from '../domain/types';
+import { ItemArt } from '../components/ItemArt';
+import { ITEM_TONE } from '../lib/designs';
 import { yen } from '../lib/format';
 
 const DONE_SHOW_MS = 10_000;
@@ -50,7 +52,11 @@ export function DisplayPage() {
             {ITEMS.map((item) => {
               const soldOut = state.sold_out.includes(item);
               return (
-                <div key={item} className={`menu-card ${item === 'set' ? 'menu-card--set' : ''} ${soldOut ? 'is-soldout' : ''}`}>
+                <div
+                  key={item}
+                  className={`menu-card ${ITEM_TONE[item]} ${item === 'set' ? 'menu-card--set' : ''} ${soldOut ? 'is-soldout' : ''}`}
+                >
+                  <ItemArt item={item} size="lg" className="menu-art" />
                   <div className="menu-name">{ITEM_LABELS[item]}</div>
                   <div className="menu-price">{soldOut ? '売り切れ' : yen(state.prices[item])}</div>
                   {item === 'set' && <div className="menu-note">案1・案2・案3 を1枚ずつ</div>}
@@ -66,8 +72,13 @@ export function DisplayPage() {
           <table className="display-lines">
             <tbody>
               {state.lines.map((l) => (
-                <tr key={l.item}>
-                  <td>{ITEM_LABELS[l.item]}</td>
+                <tr key={l.item} className={ITEM_TONE[l.item]}>
+                  <td>
+                    <span className="display-line-name">
+                      <ItemArt item={l.item} />
+                      {ITEM_LABELS[l.item]}
+                    </span>
+                  </td>
                   <td className="num">
                     {yen(l.unit_price)} × {l.quantity}
                   </td>

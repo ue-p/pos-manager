@@ -11,3 +11,4 @@ ui-debug.log
 test-results/
 playwright-report/
 hs_err_pid*.log
+design-preview/
