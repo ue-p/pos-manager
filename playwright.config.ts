@@ -20,7 +20,7 @@ export default defineConfig({
     url: 'http://localhost:5173',
     reuseExistingServer: true,
     timeout: 60_000,
-    // Emulator に接続させる（.env.local の設定より優先される）
-    env: { VITE_USE_EMULATOR: 'true', VITE_SHARED_ACCOUNT_EMAIL: sharedEmail },
+    // Emulator に接続させる（.env.local の設定より優先される）。E2E=1 で HMR を止める（vite.config.ts）
+    env: { VITE_USE_EMULATOR: 'true', VITE_SHARED_ACCOUNT_EMAIL: sharedEmail, E2E: '1' },
   },
 });
