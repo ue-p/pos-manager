@@ -21,6 +21,7 @@ import { logout } from '../lib/auth';
 import { REGISTER_IDS, registerLabel } from '../lib/device';
 import { formatAgo, hhmm, yen } from '../lib/format';
 import { useNow } from '../lib/useNow';
+import { getStoredThemePref, setThemePref, THEME_LABELS, THEME_PREFS, type ThemePref } from '../lib/theme';
 import { newUuid } from '../lib/uuid';
 
 export function SettingsPage() {
@@ -45,6 +46,7 @@ export function SettingsPage() {
 function DeviceSection() {
   const { registerId, setRegisterId, deviceId } = usePos();
   const toast = useToast();
+  const [themePref, setThemePrefState] = useState<ThemePref>(getStoredThemePref);
   const displayUrl = `${window.location.origin}/display?reg=${registerId}`;
   return (
     <section className="panel">
@@ -64,9 +66,26 @@ function DeviceSection() {
           <span>端末ID</span>
           <code>{deviceId}</code>
         </div>
+        <label className="field">
+          <span>表示モード（この端末だけ）</span>
+          <select
+            value={themePref}
+            onChange={(e) => {
+              const pref = e.target.value as ThemePref;
+              setThemePref(pref);
+              setThemePrefState(pref);
+            }}
+          >
+            {THEME_PREFS.map((p) => (
+              <option key={p} value={p}>
+                {THEME_LABELS[p]}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
       <div className="field">
-        <span>お客さん用画面のURL（別端末ではこのURLを開く。ログイン不要）</span>
+        <span>お客さん用画面のURL（別端末ではこのURLを開く。ログイン不要。末尾に &amp;theme=dark / &amp;theme=light を付けると表示モードを固定できる）</span>
         <div className="form-row">
           <code className="url">{displayUrl}</code>
           <button className="btn" onClick={() => window.open(`/display?reg=${registerId}`, `pos-display-${registerId}`)}>

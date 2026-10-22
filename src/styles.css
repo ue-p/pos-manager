@@ -1,138 +1,13 @@
 /* 素のCSS（D-01）。ボタンは縦横48px以上。PC：横並び／スマホ：縦積み */
+/* ---------- 色（D-26）：ライト＝和紙（案C）、ダーク＝夜（案Bを案Cに合わせて改良） ----------
+   - 端末の設定（prefers-color-scheme）に合わせる。設定画面の「表示モード」やお客さん用画面の ?theme= で
+     <html data-theme="light|dark"> を付けると、そちらを優先する（src/lib/theme.ts）
+   - 絵柄の色（--d1〜--d3）は画像の代表色（案1=赤、案2=紫、案3=ミント）。ボタン・在庫表示・カート・お客さん用画面で共通
+     ・--dN：帯・縁取り、--dN-ink：文字（背景とのコントラスト4.5以上）、--dN-soft：薄い塗り
+     ・セットは3絵柄の色をつないだ帯（--set-edge）。単色にしない
+   - 「会計確定」（--confirm：藍）と「取消」（--undo：朱）は、絵柄の色・他のボタンと重ならない色にする
+   - 選択中の客層・人数・ナビ等は --accent（墨／生成りの無彩色）にして、確定ボタンとまぎれないようにする */
 :root {
-  color-scheme: light;
-  --bg: #f4f4f2;
-  --surface: #fcfcfb;
-  --surface-2: #efefec;
-  --border: #dddcd7;
-  --text: #0b0b0b;
-  --text-2: #52514e;
-  --muted: #7a7974;
-  --accent: #2a78d6;
-  --accent-ink: #ffffff;
-  --accent-soft: #e3eefb;
-  --series-1: #2a78d6;
-  --grid: #e6e5e1;
-  --ok: #0f8a4a;
-  --ok-soft: #e1f3e8;
-  --warn: #a35d00;
-  --warn-soft: #fdf0d9;
-  --bad: #c62f2f;
-  --bad-soft: #fbe5e4;
-  --test: #8a3ffc;
-  --radius: 10px;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.06);
-  font-family: system-ui, -apple-system, 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic UI', sans-serif;
-  line-height: 1.5;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    color-scheme: dark;
-    --bg: #111110;
-    --surface: #1a1a19;
-    --surface-2: #252523;
-    --border: #3a3a37;
-    --text: #f0efec;
-    --text-2: #c3c2b7;
-    --muted: #9a998f;
-    --accent: #3987e5;
-    --accent-soft: #1d2f45;
-    --series-1: #3987e5;
-    --grid: #2e2e2b;
-    --ok: #4cc283;
-    --ok-soft: #173325;
-    --warn: #e9a23b;
-    --warn-soft: #3a2a10;
-    --bad: #f07272;
-    --bad-soft: #3d1a1a;
-    --test: #a77bff;
-  }
-}
-
-/* ---------- 配色パターン（プレビュー：?palette=a|b|c で切替。案が決まったら1つに絞る） ----------
-   共通の考え方
-   - 絵柄の色（--d1〜--d3）は画像の代表色から決め、どのパターンでも同じ系統にする（案1=赤、案2=紫、案3=ミント）
-     ・--dN：縁取り・帯、--dN-ink：文字（背景に対しコントラスト4.5以上）、--dN-soft：薄い塗り
-     ・セットは3絵柄の色をつないだ縁取り（--set-edge）。単色にしない（確定ボタンの色とまぎれないように）
-   - 「会計確定」（--confirm）と「取消」（--undo）は、絵柄の色・他のボタンと重ならない色にする
-   - 選択中の客層・人数・ナビ等は --accent（濃い無彩色）にして、確定ボタンとまぎれないようにする */
-:root[data-palette='a'] {
-  /* A ポップ：クリーム地に白いカード、絵柄色で塗ったタイル。確定＝青、取消＝オレンジ */
-  color-scheme: light;
-  --bg: #fff7ee;
-  --surface: #ffffff;
-  --surface-2: #fbefe2;
-  --border: #ecd9c6;
-  --text: #2a2320;
-  --text-2: #5e534c;
-  --muted: #7d716a;
-  --accent: #2a2320;
-  --accent-ink: #ffffff;
-  --accent-soft: #f6e6d4;
-  --series-1: #1d5fd6;
-  --grid: #f0e2d3;
-  --confirm: #1d5fd6;
-  --confirm-ink: #ffffff;
-  --undo: #c2410c;
-  --undo-ink: #ffffff;
-  --d1: #b95059;
-  --d1-ink: #9a3a44;
-  --d1-soft: #f8e4e6;
-  --d2: #8048b8;
-  --d2-ink: #6b37a3;
-  --d2-soft: #eee4f8;
-  --d3: #5cc49a;
-  --d3-ink: #1d6e55;
-  --d3-soft: #ddf5e9;
-  --set-ink: #2a2320;
-  --set-soft: #fff3e3;
-  --set-edge: linear-gradient(90deg, var(--d1), var(--d2), var(--d3));
-  --warn: #8a4b00;
-  --warn-soft: #fdf0d9;
-  --display-bg: radial-gradient(circle at 20% 10%, #ffe9d6, #fff7ee 55%);
-}
-:root[data-palette='b'] {
-  /* B ナイト：濃紺地。画像と絵柄色の縁取りが映える（外部モニター・暗めの会場向け）。確定＝黄、取消＝コーラル */
-  color-scheme: dark;
-  --bg: #14161f;
-  --surface: #1f2230;
-  --surface-2: #2a2e3f;
-  --border: #3a3f55;
-  --text: #f4f2ee;
-  --text-2: #c9c5bd;
-  --muted: #9b978f;
-  --accent: #f4f2ee;
-  --accent-ink: #14161f;
-  --accent-soft: #343a52;
-  --series-1: #6ea8ff;
-  --grid: #2e3245;
-  --ok: #4cc283;
-  --ok-soft: #173325;
-  --bad: #f07272;
-  --bad-soft: #3d1a1a;
-  --confirm: #ffd23f;
-  --confirm-ink: #141414;
-  --undo: #ff8a65;
-  --undo-ink: #141414;
-  --d1: #e0707c;
-  --d1-ink: #ff9aa5;
-  --d1-soft: #3b2027;
-  --d2: #a873e6;
-  --d2-ink: #d2a8ff;
-  --d2-soft: #2e2342;
-  --d3: #6fd6ad;
-  --d3-ink: #8fe6c4;
-  --d3-soft: #18372d;
-  --set-ink: #f4f2ee;
-  --set-soft: #262a3a;
-  --set-edge: linear-gradient(90deg, var(--d1), var(--d2), var(--d3));
-  --warn: #ffc46b;
-  --warn-soft: #3a2a10;
-  --display-bg: radial-gradient(circle at 50% 0%, #23283a, #14161f 60%);
-}
-:root[data-palette='c'] {
-  /* C 和紙：生成り地に墨色の文字。絵柄色はボタン左の帯と小さな印だけにして落ち着かせる。確定＝藍、取消＝朱 */
   color-scheme: light;
   --bg: #f3ede1;
   --surface: #fbf8f1;
@@ -146,6 +21,13 @@
   --accent-soft: #e6dcc8;
   --series-1: #1e3a6e;
   --grid: #e3d9c6;
+  --ok: #0f8a4a;
+  --ok-soft: #e1f3e8;
+  --warn: #8a4b00;
+  --warn-soft: #fdf0d9;
+  --bad: #c62f2f;
+  --bad-soft: #fbe5e4;
+  --test: #8a3ffc;
   --confirm: #1e3a6e;
   --confirm-ink: #ffffff;
   --undo: #b8371a;
@@ -162,9 +44,94 @@
   --set-ink: #2b2622;
   --set-soft: #fbf8f1;
   --set-edge: linear-gradient(180deg, var(--d1), var(--d2), var(--d3));
-  --warn: #8a4b00;
-  --warn-soft: #fdf0d9;
+  --set-edge-h: linear-gradient(90deg, var(--d1), var(--d2), var(--d3));
   --display-bg: #f3ede1;
+  --radius: 10px;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+  font-family: system-ui, -apple-system, 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic UI', sans-serif;
+  line-height: 1.5;
+}
+
+/* ダーク：同じ値を2か所に書く（OSがダーク かつ ライト指定でない／ダーク指定） */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --bg: #141824;
+    --surface: #1d2231;
+    --surface-2: #272d3f;
+    --border: #3a4157;
+    --text: #f1ece2;
+    --text-2: #c8c1b4;
+    --muted: #9c968b;
+    --accent: #f1ece2;
+    --accent-ink: #141824;
+    --accent-soft: #303853;
+    --series-1: #8fb0ff;
+    --grid: #2b3145;
+    --ok: #5fd394;
+    --ok-soft: #173325;
+    --warn: #ffc46b;
+    --warn-soft: #3a2a10;
+    --bad: #ff8a8a;
+    --bad-soft: #3d1a1a;
+    --test: #a77bff;
+    --confirm: #8fb0ff;
+    --confirm-ink: #0d1426;
+    --undo: #ff8f5e;
+    --undo-ink: #1f0d06;
+    --d1: #e0707c;
+    --d1-ink: #ff9aa5;
+    --d1-soft: #3b2027;
+    --d2: #a873e6;
+    --d2-ink: #cfa6ff;
+    --d2-soft: #2e2342;
+    --d3: #5fcfa3;
+    --d3-ink: #8fe6c4;
+    --d3-soft: #18372d;
+    --set-ink: #f1ece2;
+    --set-soft: #1d2231;
+    --display-bg: radial-gradient(circle at 50% 0%, #212842, #141824 60%);
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+  }
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #141824;
+  --surface: #1d2231;
+  --surface-2: #272d3f;
+  --border: #3a4157;
+  --text: #f1ece2;
+  --text-2: #c8c1b4;
+  --muted: #9c968b;
+  --accent: #f1ece2;
+  --accent-ink: #141824;
+  --accent-soft: #303853;
+  --series-1: #8fb0ff;
+  --grid: #2b3145;
+  --ok: #5fd394;
+  --ok-soft: #173325;
+  --warn: #ffc46b;
+  --warn-soft: #3a2a10;
+  --bad: #ff8a8a;
+  --bad-soft: #3d1a1a;
+  --test: #a77bff;
+  --confirm: #8fb0ff;
+  --confirm-ink: #0d1426;
+  --undo: #ff8f5e;
+  --undo-ink: #1f0d06;
+  --d1: #e0707c;
+  --d1-ink: #ff9aa5;
+  --d1-soft: #3b2027;
+  --d2: #a873e6;
+  --d2-ink: #cfa6ff;
+  --d2-soft: #2e2342;
+  --d3: #5fcfa3;
+  --d3-ink: #8fe6c4;
+  --d3-soft: #18372d;
+  --set-ink: #f1ece2;
+  --set-soft: #1d2231;
+  --display-bg: radial-gradient(circle at 50% 0%, #212842, #141824 60%);
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
 }
 
 * {
@@ -1359,13 +1326,7 @@ input[aria-invalid='true'] {
   gap: 12px;
   padding: 10px 14px;
   text-align: left;
-  border: 3px solid var(--tone);
-  background: var(--tone-soft);
   color: var(--text);
-}
-.item-btn:active:not(:disabled) {
-  background: var(--tone-soft);
-  filter: brightness(0.95);
 }
 .item-text {
   display: flex;
@@ -1378,12 +1339,6 @@ input[aria-invalid='true'] {
 }
 .item-btn .item-stock {
   color: var(--text-2);
-}
-.item-btn--set {
-  border-color: transparent;
-  background:
-    linear-gradient(var(--tone-soft), var(--tone-soft)) padding-box,
-    var(--set-edge) border-box;
 }
 /* 残りわずか：絵柄の色は残し、外側の太い枠と文字で知らせる（色だけに頼らない） */
 .item-btn--low {
@@ -1408,7 +1363,7 @@ input[aria-invalid='true'] {
   padding: 2px 12px 2px 4px;
   border-radius: 999px;
   border: 2px solid var(--tone);
-  background: var(--tone-soft);
+  background: var(--surface);
   color: var(--tone-ink);
   font-weight: 700;
 }
@@ -1431,7 +1386,7 @@ input[aria-invalid='true'] {
   padding-left: 8px;
 }
 .cart-list li.tone-set {
-  border-image: linear-gradient(180deg, var(--d1), var(--d2), var(--d3)) 1;
+  border-image: var(--set-edge) 1;
 }
 .cart-name {
   display: inline-flex;
@@ -1494,15 +1449,7 @@ input[aria-invalid='true'] {
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  border: 4px solid var(--tone);
-  background: var(--tone-soft);
   padding: clamp(12px, 2vw, 24px) 12px;
-}
-.menu-card--set {
-  border-color: transparent;
-  background:
-    linear-gradient(var(--tone-soft), var(--tone-soft)) padding-box,
-    var(--set-edge) border-box;
 }
 .menu-art {
   width: 100%;
@@ -1526,28 +1473,31 @@ input[aria-invalid='true'] {
   height: clamp(40px, 7vw, 72px);
 }
 
-/* C 和紙：塗りを使わず、左（お客さん用画面は上）の帯で絵柄色を示す */
-:root[data-palette='c'] .item-btn,
-:root[data-palette='c'] .menu-card {
+/* 絵柄色は塗りではなく帯で示す（商品ボタンは左、お客さん用画面のカードは上）。ライト・ダーク共通 */
+.item-btn,
+.menu-card {
   background: var(--surface);
   border: 2px solid var(--border);
 }
-:root[data-palette='c'] .item-btn {
+.item-btn {
   border-left: 12px solid var(--tone);
 }
-:root[data-palette='c'] .menu-card {
+.menu-card {
   border-top: 12px solid var(--tone);
 }
-:root[data-palette='c'] .item-btn--set {
+.item-btn--set {
   border-left-color: transparent;
   background: var(--set-edge) 0 0 / 12px 100% no-repeat border-box, var(--surface);
 }
-:root[data-palette='c'] .menu-card--set {
+.menu-card--set {
   border-top-color: transparent;
-  background: linear-gradient(90deg, var(--d1), var(--d2), var(--d3)) 0 0 / 100% 12px no-repeat border-box, var(--surface);
+  background: var(--set-edge-h) 0 0 / 100% 12px no-repeat border-box, var(--surface);
 }
-:root[data-palette='c'] .stock-chip {
-  background: var(--surface);
+.item-btn:active:not(:disabled) {
+  background: var(--surface-2);
+}
+.item-btn--set:active:not(:disabled) {
+  background: var(--set-edge) 0 0 / 12px 100% no-repeat border-box, var(--surface-2);
 }
 
 @media (max-width: 600px) {

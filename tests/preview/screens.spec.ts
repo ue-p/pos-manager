@@ -1,5 +1,5 @@
 // デザイン案のスクリーンショット（npx playwright test -c playwright.preview.config.ts を Emulator 上で実行）
-// 配色パターン a/b/c × スタッフ入力画面・お客さん用画面（待機・会計中）× PC幅・スマホ幅
+// 表示モード light/dark × スタッフ入力画面・お客さん用画面（待機・会計中）× PC幅・スマホ幅
 import { expect, test, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
@@ -16,7 +16,7 @@ const imagesLoaded = (page: Page) =>
 const int = (n: number) => ({ integerValue: String(n) });
 const map = (o: Record<string, number>) => ({ mapValue: { fields: Object.fromEntries(Object.entries(o).map(([k, v]) => [k, int(v)])) } });
 
-test('配色パターンのスクリーンショット', async ({ browser, request }) => {
+test('表示モードのスクリーンショット', async ({ browser, request }) => {
   test.setTimeout(240_000);
   await request.delete(`${FS.replace('/v1/', '/emulator/v1/')}`);
   await request.delete('http://127.0.0.1:9099/emulator/v1/projects/demo-gakusai-pos/accounts');
@@ -54,15 +54,15 @@ test('配色パターンのスクリーンショット', async ({ browser, reque
     await tap(page, '次の会計へ');
   }
 
-  for (const palette of ['a', 'b', 'c']) {
+  for (const palette of ['light', 'dark']) {
     await page.setViewportSize(PC);
-    await page.goto(`/?palette=${palette}`);
+    await page.goto(`/?theme=${palette}`);
     await expect(page.getByRole('button', { name: '会計確定' })).toBeVisible();
 
     // お客さん用画面（同じブラウザ。待機中）
     const display = await ctx.newPage();
     await display.setViewportSize({ width: 1280, height: 720 });
-    await display.goto(`/display?reg=reg_1&palette=${palette}`);
+    await display.goto(`/display?reg=reg_1&theme=${palette}`);
     await expect(display.locator('.display-idle')).toBeVisible();
     await imagesLoaded(display);
     await display.screenshot({ path: path.join(OUT, `${palette}-display-idle-pc.png`) });
@@ -93,5 +93,15 @@ test('配色パターンのスクリーンショット', async ({ browser, reque
     await display.close();
 
     await page.getByRole('button', { name: '全部クリア' }).click();
+
+    // ダッシュボードと設定画面（色の変更が及ぶので確認用）
+    await page.setViewportSize(PC);
+    await page.getByRole('link', { name: 'ダッシュボード' }).click();
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: path.join(OUT, `${palette}-dashboard-pc.png`), fullPage: true });
+    await page.getByRole('link', { name: '設定・出力' }).click();
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.join(OUT, `${palette}-settings-pc.png`) });
+    await page.getByRole('link', { name: 'レジ' }).click();
   }
 });
