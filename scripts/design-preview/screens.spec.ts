@@ -1,4 +1,4 @@
-// デザイン案のスクリーンショット（npx playwright test -c playwright.preview.config.ts を Emulator 上で実行）
+// デザイン確認用のスクリーンショット（実行方法は同じフォルダの playwright.config.ts）
 // 表示モード light/dark × スタッフ入力画面・お客さん用画面（待機・会計中）× PC幅・スマホ幅
 import { expect, test, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
