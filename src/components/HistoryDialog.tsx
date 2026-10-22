@@ -65,7 +65,7 @@ export function HistoryDialog({ onClose }: { onClose: () => void }) {
                     </span>
                   </div>
                   {!t.is_void && (
-                    <button className="btn btn--danger btn--sm" onClick={() => doVoid(t.transaction_id, label)}>
+                    <button className="btn btn--undo btn--sm" onClick={() => doVoid(t.transaction_id, label)}>
                       取消
                     </button>
                   )}

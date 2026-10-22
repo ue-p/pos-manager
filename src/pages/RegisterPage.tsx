@@ -1,6 +1,7 @@
 // スタッフ入力画面（F-01〜F-04, F-06, F-12）。1会計は文字入力なし・タップのみで完了する
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { HistoryDialog } from '../components/HistoryDialog';
+import { ItemArt } from '../components/ItemArt';
 import { useToast } from '../components/Toast';
 import { createDisplaySender, type DisplayState } from '../data/displaySync';
 import { usePos } from '../data/PosDataProvider';
@@ -25,6 +26,7 @@ import {
   type Transaction,
   type VrVisit,
 } from '../domain/types';
+import { ITEM_TONE } from '../lib/designs';
 import { describeLines, hhmm, yen } from '../lib/format';
 import { newUuid } from '../lib/uuid';
 
@@ -145,15 +147,18 @@ export function RegisterPage() {
               return (
                 <button
                   key={item}
-                  className={`item-btn ${low ? 'item-btn--low' : ''} ${item === 'set' ? 'item-btn--set' : ''}`}
+                  className={`item-btn ${ITEM_TONE[item]} ${low ? 'item-btn--low' : ''} ${item === 'set' ? 'item-btn--set' : ''}`}
                   disabled={!enabled}
                   onClick={() => tapItem(item)}
                 >
-                  <span className="item-name">{ITEM_LABELS[item]}</span>
-                  <span className="item-price">{yen(prices[item])}</span>
-                  <span className="item-stock">
-                    {enabled ? `残り ${left}` : '在庫なし'}
-                    {low && enabled && ' ・残りわずか'}
+                  <ItemArt item={item} />
+                  <span className="item-text">
+                    <span className="item-name">{ITEM_LABELS[item]}</span>
+                    <span className="item-price">{yen(prices[item])}</span>
+                    <span className="item-stock">
+                      {enabled ? `残り ${left}` : '在庫なし'}
+                      {low && enabled && ' ・残りわずか'}
+                    </span>
                   </span>
                   {cart[item] > 0 && <span className="item-count">{cart[item]}</span>}
                 </button>
@@ -177,8 +182,11 @@ export function RegisterPage() {
           ) : (
             <ul className="cart-list">
               {buildLines(cart, prices).map((l) => (
-                <li key={l.item}>
-                  <span className="cart-name">{ITEM_LABELS[l.item]}</span>
+                <li key={l.item} className={ITEM_TONE[l.item]}>
+                  <span className="cart-name">
+                    <ItemArt item={l.item} />
+                    {ITEM_LABELS[l.item]}
+                  </span>
                   <span className="cart-qty">
                     <button className="btn btn--icon" aria-label="1つ減らす" onClick={() => setCart((c) => decrementItem(c, l.item))}>
                       −
@@ -289,7 +297,10 @@ export function RegisterPage() {
                   ))}
                 </ul>
               )}
-              <button className="btn btn--primary btn--xl" disabled={blockers.length > 0} onClick={confirm}>
+              <button className="btn btn--confirm btn--xl" disabled={blockers.length > 0} onClick={confirm}>
+                <span className="btn-mark" aria-hidden>
+                  ✓
+                </span>
                 会計確定
               </button>
             </>
@@ -297,7 +308,10 @@ export function RegisterPage() {
         </div>
 
         <div className="panel undo-row">
-          <button className="btn btn--danger" disabled={!lastTx} onClick={undoLast}>
+          <button className="btn btn--undo" disabled={!lastTx} onClick={undoLast}>
+            <span className="btn-mark" aria-hidden>
+              ↶
+            </span>
             直前の取消
             {lastTx && (
               <small>
@@ -337,8 +351,10 @@ function StockLine({ remaining, threshold }: { remaining: Record<string, number>
     <p className="stock-line">
       在庫：
       {DESIGNS.map((d) => (
-        <span key={d} className={isLowStock(remaining[d], threshold) ? 'low' : ''}>
+        <span key={d} className={`stock-chip ${ITEM_TONE[d]} ${isLowStock(remaining[d], threshold) ? 'low' : ''}`}>
+          <ItemArt item={d} />
           {ITEM_LABELS[d]} {remaining[d]}枚
+          {isLowStock(remaining[d], threshold) && <strong>残りわずか</strong>}
         </span>
       ))}
     </p>
@@ -381,10 +397,13 @@ function VrCounter(props: { vrVisits: VrVisit[]; deviceId: string; registerId: s
         <div className="vr-count">
           <span className="num">{todayCount}</span>人<small>（本日）</small>
         </div>
-        <button className="btn btn--primary btn--lg" onClick={add}>
+        <button className="btn btn--strong btn--lg" onClick={add}>
           ＋1人
         </button>
-        <button className="btn" disabled={!last} onClick={undo}>
+        <button className="btn btn--undo" disabled={!last} onClick={undo}>
+          <span className="btn-mark" aria-hidden>
+            ↶
+          </span>
           取消
         </button>
       </div>
