@@ -42,6 +42,13 @@ test('表示モードのスクリーンショット', async ({ browser, request 
   await page.getByRole('button', { name: /開発用アカウントを作成/ }).click();
   await expect(page.getByRole('button', { name: '会計確定' })).toBeVisible();
 
+  // 担当者を登録して選ぶ（未選択では会計できない：D-27）
+  await request.patch(`${FS}/cashiers/cs_demo`, {
+    headers: { Authorization: 'Bearer owner' },
+    data: { fields: { cashier_id: { stringValue: 'cs_demo' }, name: { stringValue: 'うえ' }, active: { booleanValue: true } } },
+  });
+  await page.getByLabel('担当', { exact: true }).selectOption({ label: 'うえ' });
+
   // 売上と在庫の変化が見えるよう、先に2件会計しておく
   for (const items of [['セット', '案3'], ['案2']]) {
     for (const i of items) await page.locator('.item-btn', { hasText: i }).click();

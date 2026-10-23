@@ -166,6 +166,12 @@ Firebase Hosting は SPA 用に全パスを `index.html` へ rewrite する。
   - **使い分け**：Tableau では `local_datetime`（日時として自動認識される）、pandas では `timestamp`（`pd.to_datetime` でタイムゾーン付きの日時になる。`local_datetime` は既定では文字列として読まれる）。
   - sales_lines.csv は要件 6.2 で列が決まっているが、この列の追加はユーザーの指示による（要件定義書そのものは書き換えない）。
   - `scripts/check_csv.py` で、`local_datetime` が形式どおりか、`timestamp` を日本時間にした値と一致するかを検査する。
+- **`cashier_id` 列（2026-10-23 追加。D-27）**：
+  - sales_lines.csv・transactions.csv・register_closings.csv の3つで、`device_id` の**直後**に `cashier_id` を置く。上の表の列順は、それぞれ `device_id` の後ろに `cashier_id` が入ったものと読み替える。vr_visits.csv・action_logs.csv には入れない。
+  - 値は `cs_` + 英小文字・数字4桁（例 `cs_k3f9`）。この機能より前の記録は `unknown`。空欄は作らない。
+  - 担当者の**名前はどのCSVにも出さない**（個人情報を分析データに入れないため）。
+  - sales_lines.csv は要件 6.2 で列が決まっているが、この列の追加はユーザーの指示による（要件定義書そのものは書き換えない）。
+  - `scripts/check_csv.py` で、値が `cs_xxxx` か `unknown` であること（名前が紛れ込んでいないか）と、同じ会計の `cashier_id` が transactions.csv と sales_lines.csv で一致することを検査する。
 - レジ締め（F-13）の保存先は要件 6.4 に無いため、コレクション `register_closings` を追加する。
 - `counted_cash` は「数えた現金の総額」、`difference = (counted_cash − float_amount) − system_cash_sales`。
 
@@ -325,3 +331,31 @@ D-22（バックアップ通知を全端末共通にする）と D-23（エク�
 
 **確認用のスクリーンショット**
 - `scripts/design-preview/`（Playwright。Emulator 上でライト／ダーク × 各画面 × PC幅・スマホ幅を撮り、`design-preview/` に出す。git 管理外）。本番のビルドには含まれない。
+
+## D-27 レジ担当者の選択（状態：確定 2026-10-23）
+
+ユーザーの要求と、提案への回答（5点とも提案どおり＋追加2点）で決定。
+
+**データ**
+- コレクション `cashiers`（担当者1人＝1ドキュメント）：`cashier_id`（＝ドキュメントID。`cs_` + 英小文字・数字4桁を端末で作る）、`name`（1〜20文字）、`active`、`created_at`、`updated_at`。
+- 名前は**呼び名・イニシャル**で登録する運用（要件7「個人情報は扱わない」のため）。設定画面に注意書きを出す。名前は Firestore にだけ保存し、CSV にも、お客さん用画面の表示データ（`display_state`）にも入れない。
+- 削除はしない。`active=false` で「無効」にし、選択肢から外す。名前の変更はできる（記録は ID なので過去の分析に影響しない）。
+- 会計（`transactions`）とレジ締め（`register_closings`）に `cashier_id` を記録する。確定時の担当者を焼き込み、後から担当者を変えても過去の記録は変わらない。明細（`lines`）には持たせない。会計の `schema_version` は 2。
+- この機能より前の記録（`cashier_id` なし）は、読み込み時と CSV で `unknown` として扱う。
+- VR体験・施策ログには記録しない。
+
+**端末の「いまの担当者」**
+- 会計ごとではなく端末ごとに選ぶ（`localStorage` の `pos.cashier`。選んだ日付も一緒に保存）。画面上部の「担当」に常に表示し、交代するときだけ選び直す。
+- **日付（日本時間）が変わったら未選択に戻す**（開店時に選び直す流れにするため）。端末のタイムゾーンに左右されないよう日本時間で判定する。
+- **無効にされた担当者が選ばれている端末は、未選択と同じ扱い**。
+- 未選択のときは会計確定・レジ締めができない（理由を画面に出す）。**テストモード中も必須**（練習も本番と同じ流れにするため）。
+
+**セキュリティルール**
+- `cashiers`：共通アカウントだけ読み書き。作成時に ID の形・ドキュメントIDとの一致・名前1〜20文字・`active` が真偽値・決まった項目だけ、を確かめる。更新できるのは `name`・`active`・`updated_at` だけ。削除不可。
+- `transactions`・`register_closings`：作成時に `cashier_id` が `cs_xxxx` の形であることを求める（`unknown` や名前は不可）。取消の更新は従来どおり。機能追加前の会計も取消はできる。
+- `display_state`：ログインなしで読めるので、決まった項目（`register_id`, `mode`, `lines`, `total`, `received`, `change`, `prices`, `sold_out`, `is_test`, `updated_at_ms`）以外は書けない（担当者の名前・ID を含められない）。ルールのテストで確認する。
+
+**本番に出す順番**
+- ルールで `cashier_id` を必須にするため、**アプリの公開 → ルールのデプロイ** の順で行う。逆にすると、古いアプリを開いたままの端末の会計がルールで拒否される。
+- ルールをデプロイする前に、全端末で「未送信 0件」を確認する（古いアプリで未送信のまま残った会計は、`cashier_id` が無いため新しいルールで拒否される）。
+- デプロイ後は、全端末でページを読み込み直す。

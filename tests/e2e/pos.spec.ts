@@ -128,7 +128,8 @@ test('学祭当日の一連の操作', async ({ browser, request }) => {
 
   // ---- 直前の取消（会計2を取り消す）----
   await page.getByRole('button', { name: /直前の取消/ }).click();
-  await expect(page.locator('.toast')).toContainText('取り消しました');
+  // 通知は最大3つ並ぶ（直前の担当者登録の通知が残っていることがある）ので、取消の通知だけを見る
+  await expect(page.locator('.toast', { hasText: '取り消しました' })).toBeVisible();
   await expect(page.locator('.stock-line')).toContainText('案2 99枚');
 
   // ---- VR体験者 ×2 ----
