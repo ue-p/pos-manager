@@ -23,11 +23,14 @@ export interface ConfirmInput {
   received: number;
   groupType: GroupType | null;
   groupSize: GroupSize | null;
+  /** 端末の「いまの担当者」が選ばれているか（D-27。テストモード中も必須） */
+  cashierSelected: boolean;
 }
 
 /** 会計確定できるか。できない場合は足りない項目を日本語で返す */
 export function confirmBlockers(input: ConfirmInput): string[] {
   const reasons: string[] = [];
+  if (!input.cashierSelected) reasons.push('担当者を選んでください（画面上部の「担当」）');
   if (isCartEmpty(input.cart)) reasons.push('商品を選んでください');
   if (input.groupType === null) reasons.push('客層を選んでください');
   if (input.groupSize === null) reasons.push('人数を選んでください');

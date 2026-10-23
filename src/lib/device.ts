@@ -1,4 +1,5 @@
 // 端末ごとの値（localStorage）。D-03
+import { cashierIdFromBytes, type CashierSelection } from '../domain/cashier';
 const KEY_DEVICE = 'pos.device_id';
 const KEY_REGISTER = 'pos.register_id';
 
@@ -47,4 +48,36 @@ export function setRegisterId(id: string): void {
 
 export function registerLabel(id: string): string {
   return `レジ${id.replace('reg_', '')}`;
+}
+
+const KEY_CASHIER = 'pos.cashier';
+
+/** 端末の「いまの担当者」と、選んだ日（日本時間）。D-27 */
+export function getCashierSelection(): CashierSelection | null {
+  const v = read(KEY_CASHIER);
+  if (!v) return null;
+  try {
+    const o = JSON.parse(v) as Partial<CashierSelection>;
+    return typeof o.cashier_id === 'string' && typeof o.date === 'string' ? { cashier_id: o.cashier_id, date: o.date } : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setCashierSelection(sel: CashierSelection | null): void {
+  if (sel) write(KEY_CASHIER, JSON.stringify(sel));
+  else
+    try {
+      localStorage.removeItem(KEY_CASHIER);
+    } catch {
+      // 保存できない環境でも動作は続ける
+    }
+}
+
+/** 新しい担当者ID（既存と重ならないもの） */
+export function newCashierId(existing: Set<string>): string {
+  for (;;) {
+    const id = cashierIdFromBytes(crypto.getRandomValues(new Uint8Array(4)));
+    if (!existing.has(id)) return id;
+  }
 }

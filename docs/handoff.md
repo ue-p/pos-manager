@@ -7,7 +7,7 @@
 
 1. `CLAUDE.md` — 作業ルール（守ること・やってはいけないこと）
 2. `docs/implementation-plan.md` — 進捗（フェーズ0〜6 完了、フェーズ7 未着手）
-3. `docs/decisions.md` — 実装上の決定 D-01〜D-26（D-19 以降が実装中に追加したもの）
+3. `docs/decisions.md` — 実装上の決定 D-01〜D-27（D-19 以降が実装中に追加したもの）
 4. `docs/requirements.md` — 要件定義書（仕様の正。書き換えない）
 5. 必要に応じて `README.md`（セットアップ・本番公開手順）、`docs/operations.md`（当日の運用手順）
 
@@ -20,9 +20,10 @@
   - `ef15960` D-14：transactions.csv に `total_sheets`・`set_qty` を追加
   - D-22/D-23/D-25：CSVエクスポートを施策ログに記録（`csv_export`）、「CSV保存」を全端末共通に、保存先を共有フォルダ1か所に、ZIP名にレジ番号と秒
   - D-26：絵柄の画像と色、ライト（案C）／ダーク（案B改良）の表示モード（2026-10-22 に main へマージ。**本番へのデプロイは未実施**。プレビューチャンネル `design-preview` は 2026-10-29 まで）
+  - D-27：レジ担当者の選択（cashier_id を会計・レジ締め・CSVに記録。2026-10-23 に main へマージ。**本番へのデプロイは未実施**。出す順番は「アプリの公開 → 全端末で未送信0件を確認 → ルールのデプロイ → 全端末で再読み込み」）
 - テスト：すべて合格
-  - `npm run test`（ユニット 48件）
-  - `npm run test:rules`（セキュリティルール 24件）
+  - `npm run test`（ユニット 59件）
+  - `npm run test:rules`（セキュリティルール 31件）
   - `npm run test:e2e`（Playwright。当日の一連の操作。オフライン中の会計・テストモード切替・エクスポート記録を含む）
   - lint / typecheck / build
 - Firebase 本番プロジェクト：`dakken2026pos`（2026-10-21 作成。`.firebaserc` に設定）。`.env.local` 設定済み。2026-10-21 にデプロイ済み（https://dakken2026pos.web.app）。デプロイ後の確認も完了（問題なし）。開発・テストは Emulator（`demo-gakusai-pos`）

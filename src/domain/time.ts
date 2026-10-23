@@ -28,6 +28,12 @@ export function toJstDatetime(timestamp: string): string {
   );
 }
 
+/** 時刻（ミリ秒）の日本時間での日付 YYYY-MM-DD。端末のタイムゾーンに左右されない（担当者の選択の日替わり：D-27） */
+export function jstDateOf(ms: number): string {
+  const j = new Date(ms + JST_OFFSET_MS);
+  return `${j.getUTCFullYear()}-${pad(j.getUTCMonth() + 1)}-${pad(j.getUTCDate())}`;
+}
+
 /** timestamp（ローカルISO）の日付部分 YYYY-MM-DD */
 export function localDateOf(timestamp: string): string {
   return timestamp.slice(0, 10);

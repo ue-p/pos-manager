@@ -1,4 +1,5 @@
 // 分析用CSV（要件 6.1〜6.3、D-13、D-14）。列名・列順を変えると分析スクリプトが壊れるので注意
+import { withCashierId } from './cashier';
 import { toJstDatetime } from './time';
 import { compareByTime } from './transaction';
 import type { ActionLog, RegisterClosing, Transaction, VrVisit } from './types';
@@ -21,6 +22,7 @@ export const SALES_LINES_COLUMNS = [
   'group_size',
   'register_id',
   'device_id',
+  'cashier_id',
   'is_void',
   'is_test',
 ] as const;
@@ -41,6 +43,7 @@ export const TRANSACTIONS_COLUMNS = [
   'set_qty',
   'register_id',
   'device_id',
+  'cashier_id',
   'is_void',
   'is_test',
 ] as const;
@@ -65,6 +68,7 @@ export const REGISTER_CLOSINGS_COLUMNS = [
   'business_date',
   'register_id',
   'device_id',
+  'cashier_id',
   'system_cash_sales',
   'counted_cash',
   'float_amount',
@@ -108,7 +112,7 @@ export function salesLinesCsv(txs: Transaction[]): string {
   const rows: Record<(typeof SALES_LINES_COLUMNS)[number], Cell>[] = [];
   for (const t of sortedByTime(txs, 'transaction_id')) {
     for (const l of [...t.lines].sort((a, b) => a.line_no - b.line_no)) {
-      rows.push(pick(SALES_LINES_COLUMNS, { ...t, ...l }));
+      rows.push(pick(SALES_LINES_COLUMNS, { ...withCashierId(t), ...l }));
     }
   }
   return toCsv(SALES_LINES_COLUMNS, rows);
@@ -125,7 +129,7 @@ function derivedTransactionColumns(t: Transaction): { total_sheets: number; set_
 export function transactionsCsv(txs: Transaction[]): string {
   return toCsv(
     TRANSACTIONS_COLUMNS,
-    sortedByTime(txs, 'transaction_id').map((t) => pick(TRANSACTIONS_COLUMNS, { ...t, ...derivedTransactionColumns(t) })),
+    sortedByTime(txs, 'transaction_id').map((t) => pick(TRANSACTIONS_COLUMNS, { ...withCashierId(t), ...derivedTransactionColumns(t) })),
   );
 }
 
@@ -140,7 +144,7 @@ export function actionLogsCsv(logs: ActionLog[]): string {
 export function registerClosingsCsv(closings: RegisterClosing[]): string {
   return toCsv(
     REGISTER_CLOSINGS_COLUMNS,
-    sortedByTime(closings, 'closing_id').map((c) => pick(REGISTER_CLOSINGS_COLUMNS, { ...c })),
+    sortedByTime(closings, 'closing_id').map((c) => pick(REGISTER_CLOSINGS_COLUMNS, { ...withCashierId(c) })),
   );
 }
 

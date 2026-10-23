@@ -11,7 +11,7 @@ let seq = 0;
 
 export function tx(
   items: ItemCode[],
-  opts: Partial<Pick<Transaction, 'is_void' | 'is_test' | 'timestamp' | 'group_type' | 'register_id' | 'device_id'>> & {
+  opts: Partial<Pick<Transaction, 'is_void' | 'is_test' | 'timestamp' | 'group_type' | 'register_id' | 'device_id' | 'cashier_id'>> & {
     prices?: Prices;
     received?: number;
   } = {},
@@ -27,6 +27,7 @@ export function tx(
     received: opts.received ?? 10000,
     registerId: opts.register_id ?? 'reg_1',
     deviceId: opts.device_id ?? 'dev_a1b2',
+    cashierId: opts.cashier_id ?? 'cs_k3f9',
     isTest: opts.is_test ?? false,
   });
   return { ...t, is_void: opts.is_void ?? false };

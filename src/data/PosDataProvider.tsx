@@ -2,9 +2,26 @@
 import { collection, doc, onSnapshot, type DocumentData, type QuerySnapshot } from 'firebase/firestore';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { normalizeActionLog } from '../domain/actionLog';
-import { DEFAULT_SETTINGS, type ActionLog, type RegisterClosing, type Settings, type Transaction, type VrVisit } from '../domain/types';
-import { getDeviceId, getRegisterId, setRegisterId as persistRegisterId } from '../lib/device';
+import { resolveCurrentCashier, withCashierId, type CashierSelection } from '../domain/cashier';
+import { jstDateOf } from '../domain/time';
+import {
+  DEFAULT_SETTINGS,
+  type ActionLog,
+  type Cashier,
+  type RegisterClosing,
+  type Settings,
+  type Transaction,
+  type VrVisit,
+} from '../domain/types';
+import {
+  getCashierSelection,
+  getDeviceId,
+  getRegisterId,
+  setCashierSelection as persistCashierSelection,
+  setRegisterId as persistRegisterId,
+} from '../lib/device';
 import { db } from '../lib/firebase';
+import { useNow } from '../lib/useNow';
 
 interface CollectionState<T> {
   docs: T[];
@@ -25,7 +42,16 @@ export interface PosData {
   deviceId: string;
   registerId: string;
   setRegisterId: (id: string) => void;
+  /** 登録済みの担当者（無効も含む。D-27） */
+  cashiers: Cashier[];
+  /** この端末の「いまの担当者」。未選択・日付が変わった・無効にされた場合は null */
+  currentCashier: Cashier | null;
+  /** いまの担当者を選ぶ（null で未選択に戻す）。選んだ日（日本時間）と一緒に端末に保存する */
+  setCurrentCashier: (cashierId: string | null) => void;
 }
+
+const normalizeTransaction = (raw: DocumentData) => withCashierId(raw) as unknown as Transaction;
+const normalizeClosing = (raw: DocumentData) => withCashierId(raw) as unknown as RegisterClosing;
 
 const PosDataContext = createContext<PosData | null>(null);
 
@@ -65,10 +91,14 @@ function useNavigatorOnline(): boolean {
 }
 
 export function PosDataProvider({ children }: { children: ReactNode }) {
-  const transactions = useCollection<Transaction>('transactions');
+  const transactions = useCollection<Transaction>('transactions', normalizeTransaction);
   const vrVisits = useCollection<VrVisit>('vr_visits');
   const actionLogs = useCollection<ActionLog>('action_logs', normalizeActionLog as (raw: DocumentData) => ActionLog);
-  const registerClosings = useCollection<RegisterClosing>('register_closings');
+  const registerClosings = useCollection<RegisterClosing>('register_closings', normalizeClosing);
+  const cashiers = useCollection<Cashier>('cashiers');
+  const [cashierSelection, setCashierSelectionState] = useState<CashierSelection | null>(getCashierSelection);
+  // 日付（日本時間）が変わったら「いまの担当者」を未選択に戻すため、1分ごとに今日の日付を見直す
+  const today = jstDateOf(useNow(60_000));
   const navOnline = useNavigatorOnline();
   const [settingsState, setSettingsState] = useState<{ settings: Settings; stored: boolean; pending: boolean }>({
     settings: DEFAULT_SETTINGS,
@@ -111,6 +141,7 @@ export function PosDataProvider({ children }: { children: ReactNode }) {
         vrVisits.pending +
         actionLogs.pending +
         registerClosings.pending +
+        cashiers.pending +
         (settingsState.pending ? 1 : 0),
       online: navOnline && !transactions.fromCache,
       deviceId: getDeviceId(),
@@ -119,8 +150,15 @@ export function PosDataProvider({ children }: { children: ReactNode }) {
         persistRegisterId(id);
         setRegisterIdState(id);
       },
+      cashiers: cashiers.docs,
+      currentCashier: resolveCurrentCashier(cashierSelection, cashiers.docs, today),
+      setCurrentCashier: (cashierId: string | null) => {
+        const sel = cashierId ? { cashier_id: cashierId, date: today } : null;
+        persistCashierSelection(sel);
+        setCashierSelectionState(sel);
+      },
     }),
-    [transactions, vrVisits, actionLogs, registerClosings, settingsState, navOnline, registerId],
+    [transactions, vrVisits, actionLogs, registerClosings, cashiers, cashierSelection, today, settingsState, navOnline, registerId],
   );
 
   return <PosDataContext.Provider value={value}>{children}</PosDataContext.Provider>;

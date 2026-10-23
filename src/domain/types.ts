@@ -46,7 +46,8 @@ export interface SaleLine extends DesignQty {
 }
 
 export interface Transaction extends DesignQty {
-  schema_version: 1;
+  /** 1：初版、2：cashier_id を追加（D-27） */
+  schema_version: 1 | 2;
   transaction_id: string;
   timestamp: string;
   group_type: GroupType;
@@ -57,9 +58,18 @@ export interface Transaction extends DesignQty {
   change: number;
   register_id: string;
   device_id: string;
+  /** 会計した担当者（cs_xxxx）。この機能より前の記録は読み込み時に unknown（D-27） */
+  cashier_id: string;
   is_void: boolean;
   voided_at: string | null;
   is_test: boolean;
+}
+
+/** レジ担当者（D-27）。名前は呼び名・イニシャルで登録し、CSVには出さない。削除せず active=false で無効にする */
+export interface Cashier {
+  cashier_id: string;
+  name: string;
+  active: boolean;
 }
 
 export interface VrVisit {
@@ -92,6 +102,8 @@ export interface RegisterClosing {
   business_date: string;
   register_id: string;
   device_id: string;
+  /** レジ締めをした担当者（D-27） */
+  cashier_id: string;
   system_cash_sales: number;
   counted_cash: number;
   float_amount: number;

@@ -16,7 +16,18 @@ describe('預かり金とお釣り', () => {
 });
 
 describe('確定可否', () => {
-  const base = { cart: cartOf(['design_1']), total: 200, received: 500, groupType: 'adult' as const, groupSize: 1 as const };
+  const base = {
+    cart: cartOf(['design_1']),
+    total: 200,
+    received: 500,
+    groupType: 'adult' as const,
+    groupSize: 1 as const,
+    cashierSelected: true,
+  };
+
+  it('担当者が未選択なら確定できない（テストモード中も同じ）', () => {
+    expect(confirmBlockers({ ...base, cashierSelected: false })).toEqual(['担当者を選んでください（画面上部の「担当」）']);
+  });
 
   it('すべて揃えば確定できる', () => {
     expect(confirmBlockers(base)).toEqual([]);

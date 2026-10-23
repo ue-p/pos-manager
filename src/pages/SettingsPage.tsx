@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '../components/Toast';
 import { downloadExportZip } from '../data/exportZip';
 import { usePos } from '../data/PosDataProvider';
-import { saveActionLog, saveRegisterClosing, saveSettings, setTestMode } from '../data/repo';
+import { saveActionLog, saveCashier, saveRegisterClosing, saveSettings, setTestMode, updateCashier } from '../data/repo';
+import { CASHIER_NAME_MAX, validateCashierName } from '../domain/cashier';
 import {
   BACKUP_WARN_MINUTES,
   backupStatus,
@@ -18,7 +19,7 @@ import { compareByTime } from '../domain/transaction';
 import { toLocalIsoString, todayLocalDate } from '../domain/time';
 import { DESIGNS, ITEM_LABELS, ITEMS, type Settings } from '../domain/types';
 import { logout } from '../lib/auth';
-import { REGISTER_IDS, registerLabel } from '../lib/device';
+import { newCashierId, REGISTER_IDS, registerLabel } from '../lib/device';
 import { formatAgo, hhmm, yen } from '../lib/format';
 import { useNow } from '../lib/useNow';
 import { getStoredThemePref, setThemePref, THEME_LABELS, THEME_PREFS, type ThemePref } from '../lib/theme';
@@ -28,6 +29,7 @@ export function SettingsPage() {
   return (
     <div className="settings">
       <DeviceSection />
+      <CashierSection />
       <ExportSection />
       <TestModeSection />
       <PriceStockSection />
@@ -104,6 +106,98 @@ function DeviceSection() {
           </button>
         </div>
       </div>
+    </section>
+  );
+}
+
+/** レジ担当者の登録・編集（D-27）。削除はせず「無効」にする */
+function CashierSection() {
+  const { cashiers } = usePos();
+  const toast = useToast();
+  const [newName, setNewName] = useState('');
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const sorted = [...cashiers].sort((a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name, 'ja'));
+  const addError = newName.trim() === '' ? null : validateCashierName(newName, cashiers);
+
+  const add = () => {
+    const err = validateCashierName(newName, cashiers);
+    if (err) return toast(err, 'error');
+    const cashier = { cashier_id: newCashierId(new Set(cashiers.map((c) => c.cashier_id))), name: newName.trim(), active: true };
+    saveCashier(cashier);
+    toast(`担当者「${cashier.name}」を登録しました`);
+    setNewName('');
+  };
+
+  const rename = (id: string) => {
+    const name = drafts[id];
+    if (name === undefined) return;
+    const err = validateCashierName(name, cashiers, id);
+    if (err) return toast(err, 'error');
+    updateCashier(id, { name: name.trim() });
+    setDrafts((d) => {
+      const next = { ...d };
+      delete next[id];
+      return next;
+    });
+    toast('名前を変更しました');
+  };
+
+  return (
+    <section className="panel">
+      <h2 className="panel-title">担当者</h2>
+      <p className="warn-text small">
+        名前は呼び名かイニシャルで登録してください（例：「うえ」「Y.U」）。個人情報は扱わないため、本名は登録しないでください。
+        CSV には名前は出ず、担当者のID（cs_xxxx）だけが記録されます。
+      </p>
+      <div className="form-row">
+        <input
+          className="grow"
+          aria-label="新しい担当者の名前"
+          placeholder="呼び名・イニシャル（20文字以内）"
+          maxLength={CASHIER_NAME_MAX}
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && !e.nativeEvent.isComposing && add()}
+        />
+        <button className="btn btn--primary" disabled={newName.trim() === '' || addError !== null} onClick={add}>
+          追加
+        </button>
+      </div>
+      {addError && <p className="error small">{addError}</p>}
+      {sorted.length > 0 && (
+        <ul className="cashier-list">
+          {sorted.map((c) => {
+            const draft = drafts[c.cashier_id];
+            return (
+              <li key={c.cashier_id} className={c.active ? '' : 'is-inactive'}>
+                <input
+                  aria-label={`${c.name} の名前`}
+                  maxLength={CASHIER_NAME_MAX}
+                  value={draft ?? c.name}
+                  onChange={(e) => setDrafts((d) => ({ ...d, [c.cashier_id]: e.target.value }))}
+                />
+                <code className="muted">{c.cashier_id}</code>
+                {draft !== undefined && draft !== c.name && (
+                  <button className="btn btn--primary btn--sm" onClick={() => rename(c.cashier_id)}>
+                    名前を保存
+                  </button>
+                )}
+                <button
+                  className="btn btn--sm"
+                  onClick={() => {
+                    if (c.active && !window.confirm(`「${c.name}」を無効にしますか？
+この人を「いまの担当者」にしている端末は、担当者の選び直しが必要になります。`)) return;
+                    updateCashier(c.cashier_id, { active: !c.active });
+                  }}
+                >
+                  {c.active ? '無効にする' : '有効に戻す'}
+                </button>
+                {!c.active && <span className="tag">無効</span>}
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </section>
   );
 }
@@ -362,7 +456,7 @@ function ActionLogSection() {
 }
 
 function ClosingSection() {
-  const { transactions, registerClosings, settings, registerId, deviceId } = usePos();
+  const { transactions, registerClosings, settings, registerId, deviceId, currentCashier } = usePos();
   const toast = useToast();
   const [date, setDate] = useState(todayLocalDate());
   const [reg, setReg] = useState(registerId);
@@ -373,7 +467,7 @@ function ClosingSection() {
   const diff = countedNum === null ? null : closingDifference(countedNum, settings.float_amount, system);
 
   const save = () => {
-    if (countedNum === null || diff === null) return;
+    if (countedNum === null || diff === null || currentCashier === null) return;
     if (!window.confirm(`${registerLabel(reg)} ${date} のレジ締めを記録しますか？\n差額 ${diff >= 0 ? '+' : ''}${diff}円`)) return;
     saveRegisterClosing({
       closing_id: newUuid(),
@@ -381,6 +475,7 @@ function ClosingSection() {
       business_date: date,
       register_id: reg,
       device_id: deviceId,
+      cashier_id: currentCashier.cashier_id, // レジ締めをした担当者（D-27）
       system_cash_sales: system,
       counted_cash: countedNum,
       float_amount: settings.float_amount,
@@ -428,7 +523,8 @@ function ClosingSection() {
           {diff === null ? '—' : `${diff >= 0 ? '+' : ''}${diff.toLocaleString()}円`}
         </dd>
       </dl>
-      <button className="btn btn--primary" disabled={countedNum === null} onClick={save}>
+      {currentCashier === null && <p className="warn-text">レジ締めの前に、画面上部の「担当」で担当者を選んでください。</p>}
+      <button className="btn btn--primary" disabled={countedNum === null || currentCashier === null} onClick={save}>
         レジ締めを記録
       </button>
       {past.length > 0 && (

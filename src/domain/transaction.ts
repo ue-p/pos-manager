@@ -12,6 +12,7 @@ export interface NewTransactionInput {
   received: number;
   registerId: string;
   deviceId: string;
+  cashierId: string;
   isTest: boolean;
 }
 
@@ -19,7 +20,7 @@ export function createTransaction(input: NewTransactionInput): Transaction {
   const lines = buildLines(input.cart, input.prices);
   const total = lines.reduce((s, l) => s + l.amount, 0);
   return {
-    schema_version: 1,
+    schema_version: 2,
     transaction_id: input.transactionId,
     timestamp: input.timestamp,
     group_type: input.groupType,
@@ -31,6 +32,7 @@ export function createTransaction(input: NewTransactionInput): Transaction {
     ...sumDesignQty(lines),
     register_id: input.registerId,
     device_id: input.deviceId,
+    cashier_id: input.cashierId,
     is_void: false,
     voided_at: null,
     is_test: input.isTest,
