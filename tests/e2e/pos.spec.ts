@@ -111,6 +111,7 @@ test('学祭当日の一連の操作', async ({ browser, request }) => {
   await expect(page.locator('.stock-line')).toContainText('案1 97枚');
 
   // ---- 会計2：オフラインで入力できること ----
+  await page.waitForTimeout(600); // 二度押し防止ロック（確定から500ms）が明けるのを待つ（人の操作ではこの間に商品等を選ぶ）
   await staff.setOffline(true);
   await expect(page.locator('.pill', { hasText: 'オフライン' })).toBeVisible();
   await page.locator('.item-btn', { hasText: '案2' }).click();
