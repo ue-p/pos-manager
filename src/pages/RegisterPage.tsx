@@ -31,7 +31,7 @@ import { describeLines, hhmm, yen } from '../lib/format';
 import { newUuid } from '../lib/uuid';
 
 export function RegisterPage() {
-  const { transactions, vrVisits, settings, deviceId, registerId } = usePos();
+  const { transactions, vrVisits, settings, deviceId, registerId, currentCashier } = usePos();
   const toast = useToast();
   const [cart, setCart] = useState<Cart>(EMPTY_CART);
   const [groupType, setGroupType] = useState<GroupType | null>(null);
@@ -45,7 +45,7 @@ export function RegisterPage() {
   const total = cartTotal(cart, prices);
   const remaining = useMemo(() => remainingStock(settings.initial_stock, transactions), [settings.initial_stock, transactions]);
   const afterCart = remainingAfterCart(remaining, cart);
-  const blockers = confirmBlockers({ cart, total, received, groupType, groupSize });
+  const blockers = confirmBlockers({ cart, total, received, groupType, groupSize, cashierSelected: currentCashier !== null });
   const sales = useMemo(() => totalSales(transactions), [transactions]);
   const lastTx = lastVoidableTransaction(transactions, deviceId);
 
@@ -95,7 +95,7 @@ export function RegisterPage() {
   };
 
   const confirm = () => {
-    if (confirmLock.current || blockers.length > 0 || groupType === null || groupSize === null) return;
+    if (confirmLock.current || blockers.length > 0 || groupType === null || groupSize === null || currentCashier === null) return;
     confirmLock.current = true;
     const t = createTransaction({
       transactionId: newUuid(),
@@ -107,6 +107,7 @@ export function RegisterPage() {
       received,
       registerId,
       deviceId,
+      cashierId: currentCashier.cashier_id, // 確定時の担当者を焼き込む（D-27）
       isTest: settings.test_mode,
     });
     saveTransaction(t); // await しない（オフラインでは解決しないため）
@@ -135,6 +136,11 @@ export function RegisterPage() {
 
   return (
     <div className="register">
+      {currentCashier === null && (
+        <p className="register-alert" role="alert">
+          担当者が選ばれていません。画面上部の「担当」で、いまレジに立っている人を選んでください。
+        </p>
+      )}
       <section className="register-left">
         <div className="panel">
           <h2 className="panel-title">商品</h2>

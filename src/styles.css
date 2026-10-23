@@ -1524,3 +1524,72 @@ input[aria-invalid='true'] {
     height: clamp(96px, 18vh, 160px);
   }
 }
+
+/* ---------- レジ担当者（D-27） ---------- */
+.staff-header-right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.cashier-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+.cashier-picker select {
+  min-width: 140px;
+  font-weight: 700;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 0 10px;
+}
+.cashier-picker--empty select {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+.register-alert {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  border: 2px solid var(--warn);
+  background: var(--warn-soft);
+  color: var(--warn);
+  font-weight: 700;
+}
+.cashier-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.cashier-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.cashier-list li.is-inactive input {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.cashier-list input {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+@media (max-width: 600px) {
+  .staff-header-right {
+    width: 100%;
+  }
+  .cashier-picker {
+    width: 100%;
+  }
+  .cashier-picker select {
+    flex: 1;
+  }
+}

@@ -24,13 +24,14 @@ SCHEMAS: dict[str, dict[str, str]] = {
     "sales_lines.csv": {
         "transaction_id": STR, "line_no": INT, "timestamp": STR, "local_datetime": STR, "item": STR, "quantity": INT,
         "unit_price": INT, "amount": INT, "design_1_qty": INT, "design_2_qty": INT, "design_3_qty": INT,
-        "group_type": STR, "group_size": INT, "register_id": STR, "device_id": STR,
+        "group_type": STR, "group_size": INT, "register_id": STR, "device_id": STR, "cashier_id": STR,
         "is_void": BOOL, "is_test": BOOL,
     },
     "transactions.csv": {
         "transaction_id": STR, "timestamp": STR, "local_datetime": STR, "group_type": STR, "group_size": INT, "total": INT,
         "received": INT, "change": INT, "design_1_qty": INT, "design_2_qty": INT, "design_3_qty": INT,
-        "total_sheets": INT, "set_qty": INT, "register_id": STR, "device_id": STR, "is_void": BOOL, "is_test": BOOL,
+        "total_sheets": INT, "set_qty": INT, "register_id": STR, "device_id": STR, "cashier_id": STR,
+        "is_void": BOOL, "is_test": BOOL,
     },
     "vr_visits.csv": {
         "visit_id": STR, "timestamp": STR, "local_datetime": STR, "register_id": STR, "device_id": STR, "is_void": BOOL, "is_test": BOOL,
@@ -40,7 +41,7 @@ SCHEMAS: dict[str, dict[str, str]] = {
     },
     "register_closings.csv": {
         "closing_id": STR, "timestamp": STR, "local_datetime": STR, "business_date": STR, "register_id": STR, "device_id": STR,
-        "system_cash_sales": INT, "counted_cash": INT, "float_amount": INT, "difference": INT, "is_test": BOOL,
+        "cashier_id": STR, "system_cash_sales": INT, "counted_cash": INT, "float_amount": INT, "difference": INT, "is_test": BOOL,
     },
 }
 
@@ -54,6 +55,8 @@ TIMESTAMP_RE = r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$"
 # 日本時間（Asia/Tokyo）は UTC+9 固定（サマータイムなし）。tzdata が無い Windows でも動くよう固定値で変換する
 JST_OFFSET = pd.Timedelta(hours=9)
 LOCAL_DATETIME_RE = r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$"
+# 担当者ID（D-27）。名前は CSV に出さない。機能追加前の記録は unknown
+CASHIER_ID_RE = r"^(cs_[a-z0-9]{4}|unknown)$"
 
 
 def load(source: Path) -> dict[str, bytes]:
@@ -91,6 +94,9 @@ def check(name: str, raw: bytes, errors: list[str]) -> pd.DataFrame | None:
     jst = (pd.to_datetime(df["timestamp"], utc=True, errors="coerce") + JST_OFFSET).dt.strftime("%Y-%m-%d %H:%M:%S")
     if not (local == jst).all():
         errors.append(f"{name}.local_datetime: timestamp を日本時間にした値と一致しない行がある")
+    if "cashier_id" in df.columns and not df["cashier_id"].astype(str).str.match(CASHIER_ID_RE).all():
+        bad = sorted(set(df.loc[~df["cashier_id"].astype(str).str.match(CASHIER_ID_RE), "cashier_id"].astype(str)))[:3]
+        errors.append(f"{name}.cashier_id: cs_xxxx か unknown でない値がある（名前が入っていないか確認） {bad}")
     for col, allowed in CODES.items():
         if col in df.columns:
             bad = set(df[col]) - allowed
@@ -124,6 +130,10 @@ def main() -> int:
         sheets = txs["design_1_qty"] + txs["design_2_qty"] + txs["design_3_qty"]
         if not (txs["total_sheets"] == sheets).all():
             errors.append("transactions.csv の total_sheets が design_1_qty〜design_3_qty の合計と一致しない会計がある")
+        # 同じ会計の cashier_id が transactions.csv と sales_lines.csv で一致するか（D-27）
+        tx_cashier = txs.set_index("transaction_id")["cashier_id"]
+        if not (lines["transaction_id"].map(tx_cashier) == lines["cashier_id"]).all():
+            errors.append("sales_lines.csv の cashier_id が transactions.csv と一致しない明細がある")
         set_lines = lines[lines["item"] == "set"].groupby("transaction_id")["quantity"].sum()
         expected_sets = txs["transaction_id"].map(set_lines).fillna(0).astype(int)
         if not (txs["set_qty"] == expected_sets).all():

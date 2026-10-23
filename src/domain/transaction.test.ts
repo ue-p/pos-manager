@@ -15,9 +15,12 @@ describe('会計の生成', () => {
       received: 1000,
       registerId: 'reg_1',
       deviceId: 'dev_a1b2',
+      cashierId: 'cs_k3f9',
       isTest: false,
     });
     expect(t).toMatchObject({
+      schema_version: 2,
+      cashier_id: 'cs_k3f9',
       total: 900,
       received: 1000,
       change: 100,

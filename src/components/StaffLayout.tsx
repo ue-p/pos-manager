@@ -3,6 +3,7 @@ import { Navigate, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { onWriteError } from '../data/repo';
 import { PosDataProvider, usePos } from '../data/PosDataProvider';
 import { useAuth } from '../lib/auth';
+import { CashierPicker } from './CashierPicker';
 import { StatusBar } from './StatusBar';
 import { ToastProvider, useToast } from './Toast';
 
@@ -42,7 +43,10 @@ function StaffChrome() {
           <NavLink to="/dashboard">ダッシュボード</NavLink>
           <NavLink to="/settings">設定・出力</NavLink>
         </nav>
-        <StatusBar />
+        <div className="staff-header-right">
+          <CashierPicker />
+          <StatusBar />
+        </div>
       </header>
       <main className="staff-main">
         <Outlet />

@@ -31,6 +31,12 @@ service cloud.firestore {
       return changedKeys().hasOnly(['created_at']);
     }
 
+    // D-27：会計・レジ締めには担当者のID（cs_ + 英小文字・数字4桁）が必要。名前は記録しない
+    function hasCashierId() {
+      return request.resource.data.get('cashier_id', '') is string
+        && request.resource.data.get('cashier_id', '').matches('^cs_[a-z0-9]{4}$');
+    }
+
     match /transactions/{id} {
       allow read: if isStaff();
       allow create: if isStaff()
@@ -38,7 +44,8 @@ service cloud.firestore {
         && request.resource.data.is_void == false
         && request.resource.data.total is int
         && request.resource.data.lines is list
-        && request.resource.data.is_test is bool;
+        && request.resource.data.is_test is bool
+        && hasCashierId();
       allow update: if isStaff() && isVoidOnlyUpdate();
       allow delete: if false;
     }
@@ -80,7 +87,7 @@ service cloud.firestore {
 
     match /register_closings/{id} {
       allow read: if isStaff();
-      allow create: if isStaff() && request.resource.data.closing_id == id;
+      allow create: if isStaff() && request.resource.data.closing_id == id && hasCashierId();
       allow update: if isStaff() && isResendOnly();
       allow delete: if false;
     }
@@ -103,10 +110,36 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // お客さん用画面の表示内容（会計データではないので上書き可）。読み取りは誰でも可
+    // D-27：レジ担当者。名前は呼び名・イニシャルで登録する。削除はせず active=false で無効にする
+    function isValidCashier(id) {
+      let d = request.resource.data;
+      return id.matches('^cs_[a-z0-9]{4}$')
+        && d.cashier_id == id
+        && d.name is string && d.name.size() >= 1 && d.name.size() <= 20
+        && d.active is bool;
+    }
+
+    match /cashiers/{id} {
+      allow read: if isStaff();
+      allow create: if isStaff()
+        && isValidCashier(id)
+        && request.resource.data.keys().hasOnly(['cashier_id', 'name', 'active', 'created_at', 'updated_at']);
+      allow update: if isStaff()
+        && isValidCashier(id)
+        && changedKeys().hasOnly(['name', 'active', 'updated_at', 'created_at']);
+      allow delete: if false;
+    }
+
+    // お客さん用画面の表示内容（会計データではないので上書き可）。読み取りは誰でも可。
+    // ログインなしで読めるので、決まった項目以外（担当者の名前・IDなど）は書かせない（D-27）
     match /display_state/{registerId} {
       allow read: if true;
-      allow write: if isStaff() && request.resource.data.register_id == registerId;
+      allow write: if isStaff()
+        && request.resource.data.register_id == registerId
+        && request.resource.data.keys().hasOnly([
+          'register_id', 'mode', 'lines', 'total', 'received', 'change',
+          'prices', 'sold_out', 'is_test', 'updated_at_ms'
+        ]);
     }
   }
 }

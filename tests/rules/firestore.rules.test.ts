@@ -20,7 +20,7 @@ const anonDb = () => env.unauthenticatedContext().firestore();
 type TestDb = ReturnType<typeof staffDb>;
 
 const tx = (id: string) => ({
-  schema_version: 1,
+  schema_version: 2,
   transaction_id: id,
   timestamp: '2026-11-03T14:05:22+09:00',
   group_type: 'student',
@@ -36,6 +36,7 @@ const tx = (id: string) => ({
   design_3_qty: 1,
   register_id: 'reg_1',
   device_id: 'dev_a1b2',
+  cashier_id: 'cs_k3f9',
   is_void: false,
   voided_at: null,
   is_test: false,
@@ -106,6 +107,24 @@ describe('transactions', () => {
     await seedTx('t1');
     await assertFails(deleteDoc(doc(staffDb(), 'transactions', 't1')));
   });
+
+  it('担当者（cashier_id = cs_xxxx）が無い・形が違う会計は作れない（D-27）', async () => {
+    const { cashier_id: _omit, ...noCashier } = tx('t3');
+    void _omit;
+    await assertFails(setDoc(doc(staffDb(), 'transactions', 't3'), noCashier));
+    await assertFails(setDoc(doc(staffDb(), 'transactions', 't4'), { ...tx('t4'), cashier_id: '' }));
+    await assertFails(setDoc(doc(staffDb(), 'transactions', 't5'), { ...tx('t5'), cashier_id: 'unknown' }));
+    await assertFails(setDoc(doc(staffDb(), 'transactions', 't6'), { ...tx('t6'), cashier_id: 'うえやま' }));
+  });
+
+  it('機能追加前の会計（cashier_id なし）も、取消はできる', async () => {
+    const { cashier_id: _omit, ...old } = tx('t7');
+    void _omit;
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'transactions', 't7'), { ...old, schema_version: 1 });
+    });
+    await assertSucceeds(updateDoc(doc(staffDb(), 'transactions', 't7'), { is_void: true, voided_at: 'x' }));
+  });
 });
 
 describe('vr_visits / action_logs / register_closings', () => {
@@ -126,10 +145,14 @@ describe('vr_visits / action_logs / register_closings', () => {
     await assertFails(deleteDoc(doc(staffDb(), 'action_logs', 'l1')));
   });
 
-  it('レジ締めは作成のみ', async () => {
-    const c = { closing_id: 'c1', timestamp: 'x', business_date: '2026-11-03', register_id: 'reg_1', device_id: 'd', system_cash_sales: 0, counted_cash: 0, float_amount: 0, difference: 0, is_test: false };
+  it('レジ締めは作成のみ。担当者（cs_xxxx）が必要', async () => {
+    const c = { closing_id: 'c1', timestamp: 'x', business_date: '2026-11-03', register_id: 'reg_1', device_id: 'd', cashier_id: 'cs_k3f9', system_cash_sales: 0, counted_cash: 0, float_amount: 0, difference: 0, is_test: false };
     await assertSucceeds(setDoc(doc(staffDb(), 'register_closings', 'c1'), c));
     await assertFails(updateDoc(doc(staffDb(), 'register_closings', 'c1'), { difference: 1 }));
+    const { cashier_id: _omit, ...noCashier } = { ...c, closing_id: 'c2' };
+    void _omit;
+    await assertFails(setDoc(doc(staffDb(), 'register_closings', 'c2'), noCashier));
+    await assertFails(setDoc(doc(staffDb(), 'register_closings', 'c3'), { ...c, closing_id: 'c3', cashier_id: 'unknown' }));
   });
 });
 
@@ -143,11 +166,68 @@ describe('settings', () => {
 });
 
 describe('display_state', () => {
+  // レジ画面が送る表示データの全項目（src/data/displaySync.ts の DisplayState）
+  const state = {
+    register_id: 'reg_1',
+    mode: 'cart',
+    lines: [{ item: 'set', quantity: 1, unit_price: 500, amount: 500 }],
+    total: 500,
+    received: 1000,
+    change: 500,
+    prices: { design_1: 200, design_2: 200, design_3: 200, set: 500 },
+    sold_out: [],
+    is_test: false,
+    updated_at_ms: 1,
+  };
+
   it('未ログインでも読めるが、書けるのは共通アカウントだけ', async () => {
-    await assertSucceeds(setDoc(doc(staffDb(), 'display_state', 'reg_1'), { register_id: 'reg_1', mode: 'idle' }));
+    await assertSucceeds(setDoc(doc(staffDb(), 'display_state', 'reg_1'), state));
     await assertSucceeds(getDoc(doc(anonDb(), 'display_state', 'reg_1')));
-    await assertFails(setDoc(doc(anonDb(), 'display_state', 'reg_1'), { register_id: 'reg_1', mode: 'idle' }));
-    await assertFails(setDoc(doc(staffDb(), 'display_state', 'reg_1'), { register_id: 'reg_2', mode: 'idle' }));
+    await assertFails(setDoc(doc(anonDb(), 'display_state', 'reg_1'), state));
+    await assertFails(setDoc(doc(staffDb(), 'display_state', 'reg_1'), { ...state, register_id: 'reg_2' }));
+  });
+
+  it('担当者の名前もIDも書き込めない（ログインなしで読めるため。D-27）', async () => {
+    await assertFails(setDoc(doc(staffDb(), 'display_state', 'reg_1'), { ...state, cashier_id: 'cs_k3f9' }));
+    await assertFails(setDoc(doc(staffDb(), 'display_state', 'reg_1'), { ...state, cashier_name: 'うえ' }));
+    await assertFails(setDoc(doc(staffDb(), 'display_state', 'reg_1'), { ...state, cashier: { name: 'うえ' } }));
+  });
+});
+
+describe('cashiers（担当者。D-27）', () => {
+  const cashier = { cashier_id: 'cs_k3f9', name: 'うえ', active: true };
+
+  it('共通アカウントは登録・読み取りでき、名前と有効／無効を変えられる', async () => {
+    await assertSucceeds(
+      setDoc(doc(staffDb(), 'cashiers', 'cs_k3f9'), { ...cashier, created_at: serverTimestamp(), updated_at: serverTimestamp() }),
+    );
+    await assertSucceeds(getDoc(doc(staffDb(), 'cashiers', 'cs_k3f9')));
+    await assertSucceeds(updateDoc(doc(staffDb(), 'cashiers', 'cs_k3f9'), { name: 'Y.U', updated_at: serverTimestamp() }));
+    await assertSucceeds(updateDoc(doc(staffDb(), 'cashiers', 'cs_k3f9'), { active: false, updated_at: serverTimestamp() }));
+  });
+
+  it('削除はできない。ID や他の項目は変えられない', async () => {
+    await assertSucceeds(setDoc(doc(staffDb(), 'cashiers', 'cs_k3f9'), cashier));
+    await assertFails(deleteDoc(doc(staffDb(), 'cashiers', 'cs_k3f9')));
+    await assertFails(updateDoc(doc(staffDb(), 'cashiers', 'cs_k3f9'), { cashier_id: 'cs_zzzz' }));
+    await assertFails(updateDoc(doc(staffDb(), 'cashiers', 'cs_k3f9'), { phone: '090' }));
+    await assertFails(updateDoc(doc(staffDb(), 'cashiers', 'cs_k3f9'), { name: '' }));
+  });
+
+  it('ID の形・ドキュメントIDとの一致・名前（1〜20文字）・active・余計な項目を確かめる', async () => {
+    await assertFails(setDoc(doc(staffDb(), 'cashiers', 'cs_k3f9'), { ...cashier, cashier_id: 'cs_zzzz' }));
+    await assertFails(setDoc(doc(staffDb(), 'cashiers', 'yamada'), { ...cashier, cashier_id: 'yamada' }));
+    await assertFails(setDoc(doc(staffDb(), 'cashiers', 'cs_k3f9'), { ...cashier, name: '' }));
+    await assertFails(setDoc(doc(staffDb(), 'cashiers', 'cs_k3f9'), { ...cashier, name: 'あ'.repeat(21) }));
+    await assertFails(setDoc(doc(staffDb(), 'cashiers', 'cs_k3f9'), { ...cashier, active: 'yes' }));
+    await assertFails(setDoc(doc(staffDb(), 'cashiers', 'cs_k3f9'), { ...cashier, email: 'x@example.com' }));
+  });
+
+  it('未ログイン・別アカウントは読み書きできない', async () => {
+    await assertSucceeds(setDoc(doc(staffDb(), 'cashiers', 'cs_k3f9'), cashier));
+    await assertFails(getDoc(doc(anonDb(), 'cashiers', 'cs_k3f9')));
+    await assertFails(getDoc(doc(otherDb(), 'cashiers', 'cs_k3f9')));
+    await assertFails(setDoc(doc(otherDb(), 'cashiers', 'cs_aaaa'), { ...cashier, cashier_id: 'cs_aaaa' }));
   });
 });
 

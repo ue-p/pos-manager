@@ -44,6 +44,31 @@ test('学祭当日の一連の操作', async ({ browser, request }) => {
   await page.getByRole('button', { name: /開発用アカウントを作成/ }).click();
   await expect(page.getByRole('button', { name: '会計確定' })).toBeVisible();
 
+  // ---- 担当者（D-27）：未選択では会計できない → 設定画面で登録（呼び名）→ 画面上部の「担当」で選ぶ ----
+  await expect(page.getByText('担当者が選ばれていません')).toBeVisible();
+  await page.locator('.item-btn', { hasText: '案1' }).click();
+  await expect(page.getByText('担当者を選んでください（画面上部の「担当」）')).toBeVisible();
+  await expect(page.getByRole('button', { name: '会計確定' })).toBeDisabled();
+  await page.getByRole('button', { name: '全部クリア' }).click();
+  await page.getByRole('link', { name: '設定・出力' }).click();
+  await page.getByLabel('新しい担当者の名前').fill('うえ');
+  await tap(page, '追加');
+  await page.getByLabel('新しい担当者の名前').fill('Y.T');
+  await tap(page, '追加');
+  await expect(page.locator('.cashier-list li')).toHaveCount(2);
+  // 同じ名前は登録できない
+  await page.getByLabel('新しい担当者の名前').fill('うえ');
+  await expect(page.getByText('同じ名前の担当者がいます')).toBeVisible();
+  await page.getByLabel('新しい担当者の名前').fill('');
+  // 無効にした担当者は選択肢に出ない
+  page.once('dialog', (d) => d.accept());
+  await page.locator('.cashier-list li', { has: page.locator('input[value="Y.T"]') }).getByRole('button', { name: '無効にする' }).click();
+  await page.getByRole('link', { name: 'レジ' }).click();
+  const picker = page.getByLabel('担当', { exact: true });
+  await expect(picker.locator('option')).toHaveText(['⚠ 選んでください', 'うえ']);
+  await picker.selectOption({ label: 'うえ' });
+  await expect(page.getByText('担当者が選ばれていません')).toHaveCount(0);
+
   // ---- お客さん用画面：同じブラウザ（BroadcastChannel）と別端末（Firestore）----
   const sameBrowserDisplay = await staff.newPage();
   await sameBrowserDisplay.goto('/display?reg=reg_1');
@@ -71,6 +96,16 @@ test('学祭当日の一連の操作', async ({ browser, request }) => {
   await expect(page.locator('.done-change')).toHaveText('¥100');
   await expect(sameBrowserDisplay.locator('.display-change')).toContainText('¥100');
   await expect(remoteDisplay.locator('.display-change')).toContainText('¥100', { timeout: 15_000 });
+  // お客さん用画面の表示データ（ログインなしで読める）に、担当者の名前もIDも入っていない（D-27）
+  const displayDoc = await request.get(
+    'http://127.0.0.1:8080/v1/projects/demo-gakusai-pos/databases/(default)/documents/display_state/reg_1',
+    { headers: { Authorization: 'Bearer owner' } },
+  );
+  const displayJson = JSON.stringify(await displayDoc.json());
+  expect(displayJson).not.toContain('cashier');
+  expect(displayJson).not.toContain('うえ');
+  expect(displayJson).not.toMatch(/cs_[a-z0-9]{4}/);
+  await expect(remoteDisplay.locator('body')).not.toContainText('うえ');
   await shot(page, '02-register-done');
   await shot(sameBrowserDisplay, '03-display-done');
   await expect(page.locator('.stock-line')).toContainText('案1 97枚');

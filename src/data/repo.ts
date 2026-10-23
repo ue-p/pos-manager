@@ -3,7 +3,7 @@
 import { doc, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { toLocalIsoString } from '../domain/time';
-import type { ActionLog, RegisterClosing, Settings, Transaction, VrVisit } from '../domain/types';
+import type { ActionLog, Cashier, RegisterClosing, Settings, Transaction, VrVisit } from '../domain/types';
 
 type ErrorListener = (message: string) => void;
 const errorListeners = new Set<ErrorListener>();
@@ -47,6 +47,19 @@ export function voidVrVisit(visitId: string): void {
 
 export function saveActionLog(l: ActionLog): void {
   fireAndForget('施策ログ', setDoc(doc(db, 'action_logs', l.log_id), { ...l, created_at: serverTimestamp() }));
+}
+
+/** 担当者の登録（D-27）。名前は呼び名・イニシャル */
+export function saveCashier(c: Cashier): void {
+  fireAndForget(
+    '担当者',
+    setDoc(doc(db, 'cashiers', c.cashier_id), { ...c, created_at: serverTimestamp(), updated_at: serverTimestamp() }),
+  );
+}
+
+/** 担当者の名前・有効／無効の変更。削除はしない */
+export function updateCashier(cashierId: string, patch: Partial<Pick<Cashier, 'name' | 'active'>>): void {
+  fireAndForget('担当者', updateDoc(doc(db, 'cashiers', cashierId), { ...patch, updated_at: serverTimestamp() }));
 }
 
 export function saveRegisterClosing(c: RegisterClosing): void {

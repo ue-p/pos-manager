@@ -11,7 +11,7 @@ const PAGE = 30;
 
 /** 過去の会計一覧。選んで取り消す（確認あり。D-05） */
 export function HistoryDialog({ onClose }: { onClose: () => void }) {
-  const { transactions, registerId } = usePos();
+  const { transactions, registerId, cashiers } = usePos();
   const toast = useToast();
   const [onlyThisRegister, setOnlyThisRegister] = useState(true);
   const [limit, setLimit] = useState(PAGE);
@@ -22,6 +22,8 @@ export function HistoryDialog({ onClose }: { onClose: () => void }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  // 担当者名は画面にだけ出す（CSVには出さない。D-27）
+  const cashierName = (id: string) => cashiers.find((c) => c.cashier_id === id)?.name ?? (id === 'unknown' ? '担当不明' : id);
   const rows = useMemo(
     () =>
       transactions
@@ -59,7 +61,8 @@ export function HistoryDialog({ onClose }: { onClose: () => void }) {
                   <div className="history-main">
                     <span className="num">{label}</span>
                     <span className="muted">
-                      {GROUP_TYPE_LABELS[t.group_type]}・{GROUP_SIZE_LABELS[t.group_size]}・{registerLabel(t.register_id)}
+                      {GROUP_TYPE_LABELS[t.group_type]}・{GROUP_SIZE_LABELS[t.group_size]}・{registerLabel(t.register_id)}・担当{' '}
+                      {cashierName(t.cashier_id)}
                       {t.is_test && <span className="tag tag--test">テスト</span>}
                       {t.is_void && <span className="tag">取消済</span>}
                     </span>
