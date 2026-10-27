@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "build:no-sw": "tsc --noEmit -p tsconfig.json && vite build --mode nosw",
     "preview": "vite preview",
     "emulators": "firebase emulators:start --only auth,firestore --project demo-gakusai-pos",
     "test": "vitest run",
@@ -14,7 +15,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "format": "prettier --write .",
-    "test:e2e": "firebase emulators:exec --only auth,firestore --project demo-gakusai-pos \"playwright test\""
+    "test:e2e": "firebase emulators:exec --only auth,firestore --project demo-gakusai-pos \"playwright test && playwright test -c playwright.pwa.config.ts\""
   },
   "dependencies": {
     "firebase": "^11.10.0",
@@ -40,6 +41,7 @@
     "typescript": "~5.7.3",
     "typescript-eslint": "^8.72.0",
     "vite": "^6.4.4",
+    "vite-plugin-pwa": "1.3.0",
     "vitest": "^3.2.7"
   }
 }

@@ -1593,3 +1593,10 @@ input[aria-invalid='true'] {
     flex: 1;
   }
 }
+
+/* ---------- 新しい版の通知（D-28） ---------- */
+.pill--update {
+  background: var(--accent-soft);
+  color: var(--text);
+  padding: 2px 4px 2px 12px;
+}
