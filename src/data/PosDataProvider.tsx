@@ -3,6 +3,7 @@ import { collection, doc, onSnapshot, type DocumentData, type QuerySnapshot } fr
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { normalizeActionLog } from '../domain/actionLog';
 import { resolveCurrentCashier, withCashierId, type CashierSelection } from '../domain/cashier';
+import { resolveItemLabels, type ItemLabels } from '../domain/itemLabels';
 import { jstDateOf } from '../domain/time';
 import {
   DEFAULT_SETTINGS,
@@ -35,6 +36,8 @@ export interface PosData {
   actionLogs: ActionLog[];
   registerClosings: RegisterClosing[];
   settings: Settings;
+  /** 画面に出すシールの名前（設定の表示名。未設定は「案N」。D-29） */
+  itemLabels: ItemLabels;
   /** サーバーまたはキャッシュから設定を読めたか（未保存なら false で既定値を使う） */
   settingsStored: boolean;
   pendingCount: number;
@@ -119,6 +122,7 @@ export function PosDataProvider({ children }: { children: ReactNode }) {
             ...data,
             prices: { ...DEFAULT_SETTINGS.prices, ...data?.prices },
             initial_stock: { ...DEFAULT_SETTINGS.initial_stock, ...data?.initial_stock },
+            item_labels: { ...data?.item_labels },
           },
           stored: snap.exists(),
           pending: snap.metadata.hasPendingWrites,
@@ -135,6 +139,7 @@ export function PosDataProvider({ children }: { children: ReactNode }) {
       actionLogs: actionLogs.docs,
       registerClosings: registerClosings.docs,
       settings: settingsState.settings,
+      itemLabels: resolveItemLabels(settingsState.settings.item_labels),
       settingsStored: settingsState.stored,
       pendingCount:
         transactions.pending +

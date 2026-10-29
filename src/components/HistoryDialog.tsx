@@ -11,7 +11,7 @@ const PAGE = 30;
 
 /** 過去の会計一覧。選んで取り消す（確認あり。D-05） */
 export function HistoryDialog({ onClose }: { onClose: () => void }) {
-  const { transactions, registerId, cashiers } = usePos();
+  const { transactions, registerId, cashiers, itemLabels } = usePos();
   const toast = useToast();
   const [onlyThisRegister, setOnlyThisRegister] = useState(true);
   const [limit, setLimit] = useState(PAGE);
@@ -55,7 +55,7 @@ export function HistoryDialog({ onClose }: { onClose: () => void }) {
           {rows.length === 0 && <p className="muted">会計はまだありません</p>}
           <ul className="history">
             {rows.slice(0, limit).map((t) => {
-              const label = `${t.timestamp.slice(5, 10).replace('-', '/')} ${t.timestamp.slice(11, 16)} ${describeLines(t.lines)} ${yen(t.total)}`;
+              const label = `${t.timestamp.slice(5, 10).replace('-', '/')} ${t.timestamp.slice(11, 16)} ${describeLines(t.lines, itemLabels)} ${yen(t.total)}`;
               return (
                 <li key={t.transaction_id} className={t.is_void ? 'is-void' : ''}>
                   <div className="history-main">

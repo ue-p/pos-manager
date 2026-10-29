@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { subscribeDisplay, type DisplayState } from '../data/displaySync';
 import { ITEM_LABELS, ITEMS } from '../domain/types';
 import { ItemArt } from '../components/ItemArt';
+import { setContentsNote } from '../domain/itemLabels';
 import { ITEM_TONE } from '../lib/designs';
 import { yen } from '../lib/format';
 import { APP_VERSION } from '../lib/pwa';
@@ -33,6 +34,8 @@ export function DisplayPage() {
     return () => document.removeEventListener('fullscreenchange', on);
   }, []);
 
+  // シールの表示名はレジ画面が表示データで送る（D-29）。古い版のレジからのデータには無いので「案N」
+  const labels = state?.labels ?? ITEM_LABELS;
   const mode = state === null ? 'waiting' : state.mode === 'done' && doneExpired ? 'idle' : state.mode;
 
   return (
@@ -62,9 +65,9 @@ export function DisplayPage() {
                   className={`menu-card ${ITEM_TONE[item]} ${item === 'set' ? 'menu-card--set' : ''} ${soldOut ? 'is-soldout' : ''}`}
                 >
                   <ItemArt item={item} size="lg" className="menu-art" />
-                  <div className="menu-name">{ITEM_LABELS[item]}</div>
+                  <div className="menu-name">{labels[item]}</div>
                   <div className="menu-price">{soldOut ? '売り切れ' : yen(state.prices[item])}</div>
-                  {item === 'set' && <div className="menu-note">案1・案2・案3 を1枚ずつ</div>}
+                  {item === 'set' && <div className="menu-note">{setContentsNote(labels)}</div>}
                 </div>
               );
             })}
@@ -81,7 +84,7 @@ export function DisplayPage() {
                   <td>
                     <span className="display-line-name">
                       <ItemArt item={l.item} />
-                      {ITEM_LABELS[l.item]}
+                      {labels[l.item]}
                     </span>
                   </td>
                   <td className="num">
