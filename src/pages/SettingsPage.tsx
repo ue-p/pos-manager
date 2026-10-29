@@ -22,6 +22,7 @@ import { logout } from '../lib/auth';
 import { newCashierId, REGISTER_IDS, registerLabel } from '../lib/device';
 import { formatAgo, hhmm, yen } from '../lib/format';
 import { useNow } from '../lib/useNow';
+import { APP_VERSION } from '../lib/pwa';
 import { getStoredThemePref, setThemePref, THEME_LABELS, THEME_PREFS, type ThemePref } from '../lib/theme';
 import { newUuid } from '../lib/uuid';
 
@@ -85,6 +86,10 @@ function DeviceSection() {
             ))}
           </select>
         </label>
+        <div className="field">
+          <span>アプリの版</span>
+          <code data-testid="app-version">{APP_VERSION}</code>
+        </div>
       </div>
       <div className="field">
         <span>お客さん用画面のURL（別端末ではこのURLを開く。ログイン不要。末尾に &amp;theme=dark / &amp;theme=light を付けると表示モードを固定できる）</span>

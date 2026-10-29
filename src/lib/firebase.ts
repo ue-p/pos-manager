@@ -9,8 +9,11 @@ import {
 
 const env = import.meta.env;
 
-/** 開発時は既定で Emulator に接続する（VITE_USE_EMULATOR=false で本番プロジェクトへ）。本番ビルドでは常に本番 */
-export const usingEmulator = env.DEV && env.VITE_USE_EMULATOR !== 'false';
+/**
+ * 開発時は既定で Emulator に接続する（VITE_USE_EMULATOR=false で本番プロジェクトへ）。本番ビルドでは常に本番。
+ * mode=e2e のビルド（Service Worker の E2E 用。vite build --mode e2e）も Emulator に接続する
+ */
+export const usingEmulator = (env.DEV || env.MODE === 'e2e') && env.VITE_USE_EMULATOR !== 'false';
 
 const EMULATOR_PROJECT_ID = 'demo-gakusai-pos';
 

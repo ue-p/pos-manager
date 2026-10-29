@@ -1113,6 +1113,16 @@ input[aria-invalid='true'] {
   font-weight: 800;
   font-size: 0.85rem;
 }
+.display-version {
+  position: absolute;
+  right: 12px;
+  bottom: 8px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
 .display-wait {
   color: var(--muted);
   font-size: 1.2rem;
@@ -1592,4 +1602,11 @@ input[aria-invalid='true'] {
   .cashier-picker select {
     flex: 1;
   }
+}
+
+/* ---------- 新しい版の通知（D-28） ---------- */
+.pill--update {
+  background: var(--accent-soft);
+  color: var(--text);
+  padding: 2px 4px 2px 12px;
 }

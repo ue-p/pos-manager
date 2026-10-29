@@ -28,6 +28,7 @@ import {
 } from '../domain/types';
 import { ITEM_TONE } from '../lib/designs';
 import { describeLines, hhmm, yen } from '../lib/format';
+import { setSaleInProgress } from '../lib/pwa';
 import { newUuid } from '../lib/uuid';
 
 export function RegisterPage() {
@@ -48,6 +49,13 @@ export function RegisterPage() {
   const blockers = confirmBlockers({ cart, total, received, groupType, groupSize, cashierSelected: currentCashier !== null });
   const sales = useMemo(() => totalSales(transactions), [transactions]);
   const lastTx = lastVoidableTransaction(transactions, deviceId);
+
+  // 会計の途中は、新しい版への切り替え（状態バーの［更新］）をさせない（D-28）
+  const inSale = !isCartEmpty(cart) || received > 0 || groupType !== null || groupSize !== null;
+  useEffect(() => {
+    setSaleInProgress(inSale);
+  }, [inSale]);
+  useEffect(() => () => setSaleInProgress(false), []);
 
   // ---- お客さん用画面へ送る（失敗しても入力画面は止めない） ----
   const sender = useRef<ReturnType<typeof createDisplaySender> | null>(null);
