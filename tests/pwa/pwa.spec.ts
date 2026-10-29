@@ -75,6 +75,8 @@ test('お客さん用画面をオンラインで一度も開いていなくて�
   const display = await ctx.newPage();
   await display.goto('/display?reg=reg_1');
   await expect(display.getByText('レジからの表示を待っています（reg_1）')).toBeVisible();
+  // お客さん用画面にも、隅に小さく「アプリの版」が出る
+  await expect(display.getByTestId('display-version')).toHaveText('版 e2e-v1');
 
   const dark = await ctx.newPage();
   await dark.goto('/display?reg=reg_1&theme=dark');

@@ -6,6 +6,7 @@ import { ITEM_LABELS, ITEMS } from '../domain/types';
 import { ItemArt } from '../components/ItemArt';
 import { ITEM_TONE } from '../lib/designs';
 import { yen } from '../lib/format';
+import { APP_VERSION } from '../lib/pwa';
 
 const DONE_SHOW_MS = 10_000;
 
@@ -42,6 +43,10 @@ export function DisplayPage() {
         </button>
       )}
       {state?.is_test && <div className="display-test">TEST</div>}
+      {/* 開店前に全端末で版がそろっているかを確かめるため、隅に小さく出す（D-28） */}
+      <div className="display-version" data-testid="display-version">
+        版 {APP_VERSION}
+      </div>
 
       {mode === 'waiting' && <p className="display-wait">レジからの表示を待っています（{registerId}）</p>}
 
