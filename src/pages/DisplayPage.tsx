@@ -71,8 +71,8 @@ export function DisplayPage() {
                   {/* 「残りわずか」の基準以下になったら残り数を出す。基準より多いときは出さず、0 は「売り切れ」だけ（D-30） */}
                   {!soldOut && low !== undefined && (
                     <div className="menu-remaining">
-                      残りわずか（あと{low}
-                      {item === 'set' ? 'セット' : '枚'}）
+                      あと{low}
+                      {item === 'set' ? 'セット' : '枚'}
                     </div>
                   )}
                   {item === 'set' && <div className="menu-note">{setContentsNote(labels)}</div>}

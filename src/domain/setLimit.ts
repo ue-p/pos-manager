@@ -32,7 +32,7 @@ export function availableSets(remaining: Stock, setsLeft: number): number {
 }
 
 /**
- * お客さん用画面に出す「残りわずか（あと◯枚／◯セット）」。残りが「残りわずか」の基準以下で 1 以上の商品だけを返す。
+ * お客さん用画面に出す「あと◯枚」「あと◯セット」。残りが「残りわずか」の基準以下で 1 以上の商品だけを返す。
  * 基準より多い商品は残り数を出さず、0 以下は「売り切れ」（sold_out）で示すので含めない（D-30）
  */
 export function displayLowStock(remaining: Stock, setsAvailable: number, threshold: number): Partial<Record<ItemCode, number>> {

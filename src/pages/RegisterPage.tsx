@@ -74,7 +74,7 @@ export function RegisterPage() {
 
   const soldOut = ITEMS.filter((i) => !canAddItem(i, EMPTY_CART, remaining, setsLeft));
   const soldOutKey = soldOut.join(',');
-  // お客さん用画面の「残りわずか（あと◯枚／◯セット）」（D-30）。基準より多い商品は送らない
+  // お客さん用画面の「あと◯枚」「あと◯セット」（D-30）。基準より多い商品は送らない
   const lowStock = displayLowStock(remaining, availableSets(remaining, setsLeft), settings.low_stock_threshold);
   const lowStockKey = JSON.stringify(lowStock);
   useEffect(() => {
