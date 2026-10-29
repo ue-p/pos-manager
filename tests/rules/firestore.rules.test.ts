@@ -178,16 +178,16 @@ describe('display_state', () => {
     // シールの表示名（D-29。画面に出す名前だけ。個人情報ではない）
     labels: { design_1: 'ぴょん丸', design_2: '案2', design_3: '案3', set: 'セット' },
     sold_out: [],
-    // 売れるセットの残り数（D-30）
-    set_remaining: 12,
+    // 「残りわずか」の商品の残り数（D-30）
+    low_stock: { design_3: 4, set: 2 },
     is_test: false,
     updated_at_ms: 1,
   };
 
   it('未ログインでも読めるが、書けるのは共通アカウントだけ', async () => {
     await assertSucceeds(setDoc(doc(staffDb(), 'display_state', 'reg_1'), state));
-    // 古い版のレジ（set_remaining なし）の表示データも受け付ける
-    const { set_remaining: _old, ...withoutRemaining } = state;
+    // 古い版のレジ（low_stock なし）の表示データも受け付ける
+    const { low_stock: _old, ...withoutRemaining } = state;
     void _old;
     await assertSucceeds(setDoc(doc(staffDb(), 'display_state', 'reg_1'), withoutRemaining));
     await assertSucceeds(getDoc(doc(anonDb(), 'display_state', 'reg_1')));

@@ -1,5 +1,5 @@
 // セットの販売上限（D-30）。残りセット数は保存せず、在庫と同じく会計から毎回計算する
-import { DESIGNS, isCounted, type Stock, type Transaction } from './types';
+import { DESIGNS, isCounted, type ItemCode, type Stock, type Transaction } from './types';
 
 export const SET_LIMIT_MAX = 100;
 
@@ -30,3 +30,15 @@ export function parseSetLimit(input: string): number | null {
 export function availableSets(remaining: Stock, setsLeft: number): number {
   return Math.max(0, Math.min(setsLeft, ...DESIGNS.map((d) => remaining[d])));
 }
+
+/**
+ * お客さん用画面に出す「残りわずか（あと◯枚／◯セット）」。残りが「残りわずか」の基準以下で 1 以上の商品だけを返す。
+ * 基準より多い商品は残り数を出さず、0 以下は「売り切れ」（sold_out）で示すので含めない（D-30）
+ */
+export function displayLowStock(remaining: Stock, setsAvailable: number, threshold: number): Partial<Record<ItemCode, number>> {
+  const out: Partial<Record<ItemCode, number>> = {};
+  const counts: [ItemCode, number][] = [...DESIGNS.map((d): [ItemCode, number] => [d, remaining[d]]), ['set', setsAvailable]];
+  for (const [item, n] of counts) if (n >= 1 && n <= threshold) out[item] = n;
+  return out;
+}
+

@@ -59,6 +59,7 @@ export function DisplayPage() {
           <div className="display-menu">
             {ITEMS.map((item) => {
               const soldOut = state.sold_out.includes(item);
+              const low = state.low_stock?.[item];
               return (
                 <div
                   key={item}
@@ -67,9 +68,12 @@ export function DisplayPage() {
                   <ItemArt item={item} size="lg" className="menu-art" />
                   <div className="menu-name">{labels[item]}</div>
                   <div className="menu-price">{soldOut ? '売り切れ' : yen(state.prices[item])}</div>
-                  {/* セットの残り数（D-30）。0 になったら「売り切れ」だけを出す */}
-                  {item === 'set' && !soldOut && state.set_remaining !== undefined && (
-                    <div className="menu-remaining">残り {state.set_remaining}セット</div>
+                  {/* 「残りわずか」の基準以下になったら残り数を出す。基準より多いときは出さず、0 は「売り切れ」だけ（D-30） */}
+                  {!soldOut && low !== undefined && (
+                    <div className="menu-remaining">
+                      残りわずか（あと{low}
+                      {item === 'set' ? 'セット' : '枚'}）
+                    </div>
                   )}
                   {item === 'set' && <div className="menu-note">{setContentsNote(labels)}</div>}
                 </div>

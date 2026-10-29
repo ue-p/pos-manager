@@ -9,7 +9,7 @@ import { saveTransaction, saveVrVisit, voidTransaction, voidVrVisit } from '../d
 import { remainingToTarget, totalSales } from '../domain/aggregate';
 import { addItem, buildLines, cartTotal, decrementItem, EMPTY_CART, isCartEmpty, type Cart } from '../domain/cart';
 import { addReceived, calcChange, confirmBlockers, exactReceived, RECEIVED_BUTTONS } from '../domain/payment';
-import { availableSets, remainingSets } from '../domain/setLimit';
+import { availableSets, displayLowStock, remainingSets } from '../domain/setLimit';
 import { canAddItem, isLowStock, remainingAfterCart, remainingStock } from '../domain/stock';
 import { localDateOf, toLocalIsoString, todayLocalDate } from '../domain/time';
 import { createTransaction, lastVoidableTransaction } from '../domain/transaction';
@@ -74,7 +74,9 @@ export function RegisterPage() {
 
   const soldOut = ITEMS.filter((i) => !canAddItem(i, EMPTY_CART, remaining, setsLeft));
   const soldOutKey = soldOut.join(',');
-  const setRemaining = availableSets(remaining, setsLeft);
+  // お客さん用画面の「残りわずか（あと◯枚／◯セット）」（D-30）。基準より多い商品は送らない
+  const lowStock = displayLowStock(remaining, availableSets(remaining, setsLeft), settings.low_stock_threshold);
+  const lowStockKey = JSON.stringify(lowStock);
   useEffect(() => {
     const lines = done ? done.lines : buildLines(cart, prices);
     const state: DisplayState = {
@@ -87,7 +89,7 @@ export function RegisterPage() {
       prices,
       labels: itemLabels,
       sold_out: soldOutKey ? (soldOutKey.split(',') as ItemCode[]) : [],
-      set_remaining: setRemaining,
+      low_stock: JSON.parse(lowStockKey) as Partial<Record<ItemCode, number>>,
       is_test: settings.test_mode,
       updated_at_ms: Date.now(),
     };
@@ -96,7 +98,7 @@ export function RegisterPage() {
     } catch (err) {
       console.warn('[display]', err);
     }
-  }, [cart, received, done, prices, itemLabels, total, registerId, soldOutKey, setRemaining, settings.test_mode]);
+  }, [cart, received, done, prices, itemLabels, total, registerId, soldOutKey, lowStockKey, settings.test_mode]);
 
   // ---- 操作 ----
   const beginIfDone = () => {

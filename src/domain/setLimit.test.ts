@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EMPTY_CART } from './cart';
-import { availableSets, parseSetLimit, remainingSets, SET_LIMIT_MAX, soldSets } from './setLimit';
+import { availableSets, displayLowStock, parseSetLimit, remainingSets, SET_LIMIT_MAX, soldSets } from './setLimit';
 import { canAddItem } from './stock';
 import { cartOf, tx } from './testutil';
 import { DEFAULT_SETTINGS, type Stock } from './types';
@@ -61,3 +61,20 @@ describe('カートに入れられるか（上限つき）', () => {
     expect(canAddItem('set', EMPTY_CART, { design_1: 0, design_2: 9, design_3: 9 }, 100)).toBe(false);
   });
 });
+
+describe('お客さん用画面の「残りわずか」（D-30）', () => {
+  it('基準より多い商品は出さない。基準以下で1以上の商品だけ、残り数を出す', () => {
+    const remaining: Stock = { design_1: 11, design_2: 10, design_3: 1 };
+    expect(displayLowStock(remaining, 10, 10)).toEqual({ design_2: 10, design_3: 1, set: 10 });
+    expect(displayLowStock(plenty, 11, 10)).toEqual({});
+  });
+
+  it('セットは「売れるセット数」（上限の残りと在庫の少ない方）で判定する', () => {
+    expect(displayLowStock(plenty, availableSets(plenty, 3), 10)).toEqual({ set: 3 });
+  });
+
+  it('0（売り切れ）・マイナスは出さない（「売り切れ」と表示するため）', () => {
+    expect(displayLowStock({ design_1: 0, design_2: -2, design_3: 50 }, 0, 10)).toEqual({});
+  });
+});
+

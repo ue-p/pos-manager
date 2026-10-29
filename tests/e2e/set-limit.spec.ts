@@ -51,7 +51,9 @@ test('セットの販売上限で、セットが売り切れになり、変更�
   await page.getByRole('link', { name: 'レジ' }).click();
   await expect(setBtn).toContainText('残り 2セット');
   const setCard = display.locator('.menu-card--set');
-  await expect(setCard).toContainText('残り 2セット', { timeout: 15_000 });
+  // 「残りわずか」の基準（初期値10）以下なので残り数を出す。単品（残り100枚）は出さない
+  await expect(setCard).toContainText('残りわずか（あと2セット）', { timeout: 15_000 });
+  await expect(display.locator('.menu-card').nth(0)).not.toContainText('残り');
   await setBtn.click();
   await expect(setBtn).toContainText('残り 1セット');
   await page.locator('.cart-list li', { hasText: 'セット' }).getByRole('button', { name: '1つ増やす' }).click();
@@ -73,6 +75,7 @@ test('セットの販売上限で、セットが売り切れになり、変更�
   // お客さん用画面：0 になったら「売り切れ」だけ（残り数は出さない）
   await expect(setCard).toContainText('売り切れ', { timeout: 15_000 });
   await expect(setCard).not.toContainText('残り');
+  await expect(setCard).not.toContainText('あと');
 
   // ダッシュボード：販売済み／上限
   await page.getByRole('link', { name: 'ダッシュボード' }).click();
@@ -95,7 +98,20 @@ test('セットの販売上限で、セットが売り切れになり、変更�
   await section.getByRole('button', { name: '保存' }).click();
   await page.getByRole('link', { name: 'レジ' }).click();
   await expect(setBtn).toContainText('残り 98セット');
-  await expect(setCard).toContainText('残り 98セット', { timeout: 15_000 });
+  // 残り98セットは基準（10）より多いので、残り数は出さない
+  await expect(setCard).toContainText('¥500', { timeout: 15_000 });
+  await expect(setCard).not.toContainText('残り');
+
+  // 単品も基準以下で「残りわずか（あと◯枚）」：案1の初期在庫を 9 にする（販売済み2枚 → 残り7枚）
+  await page.getByRole('link', { name: '設定・出力' }).click();
+  const priceSection = page.locator('section', { has: page.getByRole('heading', { name: '価格・在庫', exact: true }) });
+  await priceSection.locator('.field', { hasText: '案1' }).nth(1).locator('input').fill('9');
+  page.once('dialog', (d) => d.accept());
+  await priceSection.getByRole('button', { name: '保存' }).click();
+  await page.getByRole('link', { name: 'レジ' }).click();
+  await expect(display.locator('.menu-card').nth(0)).toContainText('残りわずか（あと7枚）', { timeout: 15_000 });
+  // セットも在庫で作れる数（7）が基準以下になるので出る
+  await expect(setCard).toContainText('残りわずか（あと7セット）');
 
   // CSV：変更の記録が set_limit_change・is_test=false で3件
   await page.getByRole('link', { name: '設定・出力' }).click();
