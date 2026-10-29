@@ -18,7 +18,6 @@ import {
   GROUP_SIZES,
   GROUP_TYPE_LABELS,
   GROUP_TYPES,
-  ITEM_LABELS,
   ITEMS,
   type GroupSize,
   type GroupType,
@@ -26,13 +25,14 @@ import {
   type Transaction,
   type VrVisit,
 } from '../domain/types';
+import type { ItemLabels } from '../domain/itemLabels';
 import { ITEM_TONE } from '../lib/designs';
 import { describeLines, hhmm, yen } from '../lib/format';
 import { setSaleInProgress } from '../lib/pwa';
 import { newUuid } from '../lib/uuid';
 
 export function RegisterPage() {
-  const { transactions, vrVisits, settings, deviceId, registerId, currentCashier } = usePos();
+  const { transactions, vrVisits, settings, deviceId, registerId, currentCashier, itemLabels } = usePos();
   const toast = useToast();
   const [cart, setCart] = useState<Cart>(EMPTY_CART);
   const [groupType, setGroupType] = useState<GroupType | null>(null);
@@ -80,6 +80,7 @@ export function RegisterPage() {
       received: done ? done.received : received,
       change: done ? done.change : calcChange(total, received),
       prices,
+      labels: itemLabels,
       sold_out: soldOutKey ? (soldOutKey.split(',') as ItemCode[]) : [],
       is_test: settings.test_mode,
       updated_at_ms: Date.now(),
@@ -89,7 +90,7 @@ export function RegisterPage() {
     } catch (err) {
       console.warn('[display]', err);
     }
-  }, [cart, received, done, prices, total, registerId, soldOutKey, settings.test_mode]);
+  }, [cart, received, done, prices, itemLabels, total, registerId, soldOutKey, settings.test_mode]);
 
   // ---- 操作 ----
   const beginIfDone = () => {
@@ -131,7 +132,7 @@ export function RegisterPage() {
     if (!lastTx) return;
     voidTransaction(lastTx.transaction_id);
     if (done?.transaction_id === lastTx.transaction_id) setDone(null);
-    toast(`取り消しました：${hhmm(lastTx.timestamp)} ${describeLines(lastTx.lines)} ${yen(lastTx.total)}`);
+    toast(`取り消しました：${hhmm(lastTx.timestamp)} ${describeLines(lastTx.lines, itemLabels)} ${yen(lastTx.total)}`);
   };
 
   const clearAll = () => {
@@ -167,7 +168,7 @@ export function RegisterPage() {
                 >
                   <ItemArt item={item} />
                   <span className="item-text">
-                    <span className="item-name">{ITEM_LABELS[item]}</span>
+                    <span className="item-name">{itemLabels[item]}</span>
                     <span className="item-price">{yen(prices[item])}</span>
                     <span className="item-stock">
                       {enabled ? `残り ${left}` : '在庫なし'}
@@ -179,7 +180,7 @@ export function RegisterPage() {
               );
             })}
           </div>
-          <StockLine remaining={remaining} threshold={settings.low_stock_threshold} />
+          <StockLine remaining={remaining} threshold={settings.low_stock_threshold} labels={itemLabels} />
         </div>
 
         <div className="panel">
@@ -199,7 +200,7 @@ export function RegisterPage() {
                 <li key={l.item} className={ITEM_TONE[l.item]}>
                   <span className="cart-name">
                     <ItemArt item={l.item} />
-                    {ITEM_LABELS[l.item]}
+                    {itemLabels[l.item]}
                   </span>
                   <span className="cart-qty">
                     <button className="btn btn--icon" aria-label="1つ減らす" onClick={() => setCart((c) => decrementItem(c, l.item))}>
@@ -360,14 +361,14 @@ export function RegisterPage() {
   );
 }
 
-function StockLine({ remaining, threshold }: { remaining: Record<string, number>; threshold: number }) {
+function StockLine({ remaining, threshold, labels }: { remaining: Record<string, number>; threshold: number; labels: ItemLabels }) {
   return (
     <p className="stock-line">
       在庫：
       {DESIGNS.map((d) => (
         <span key={d} className={`stock-chip ${ITEM_TONE[d]} ${isLowStock(remaining[d], threshold) ? 'low' : ''}`}>
           <ItemArt item={d} />
-          {ITEM_LABELS[d]} {remaining[d]}枚
+          {labels[d]} {remaining[d]}枚
           {isLowStock(remaining[d], threshold) && <strong>残りわずか</strong>}
         </span>
       ))}

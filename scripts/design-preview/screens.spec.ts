@@ -4,7 +4,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 
-const OUT = process.env.PREVIEW_DIR ?? 'design-preview';
+const LONG = process.env.LONG_LABELS === '1';
+const OUT = process.env.PREVIEW_DIR ?? (LONG ? 'design-preview/long-labels' : 'design-preview');
 mkdirSync(OUT, { recursive: true });
 const PC = { width: 1280, height: 860 };
 const PHONE = { width: 390, height: 844 };
@@ -31,6 +32,20 @@ test('表示モードのスクリーンショット', async ({ browser, request 
         low_stock_threshold: int(10),
         float_amount: int(0),
         test_mode: { booleanValue: false },
+        // LONG_LABELS=1：シールの表示名を最大に近い長さにして、はみ出さないか確かめる（D-29）
+        ...(LONG
+          ? {
+              item_labels: {
+                mapValue: {
+                  fields: {
+                    design_1: { stringValue: 'ぴょんぴょんうさぎ丸くん' },
+                    design_2: { stringValue: 'WWWWWWWWWWWW' },
+                    design_3: { stringValue: 'ミッドナイトスライムズ' },
+                  },
+                },
+              },
+            }
+          : {}),
       },
     },
   });
@@ -50,8 +65,8 @@ test('表示モードのスクリーンショット', async ({ browser, request 
   await page.getByLabel('担当', { exact: true }).selectOption({ label: 'うえ' });
 
   // 売上と在庫の変化が見えるよう、先に2件会計しておく
-  for (const items of [['セット', '案3'], ['案2']]) {
-    for (const i of items) await page.locator('.item-btn', { hasText: i }).click();
+  for (const items of [[3, 2], [1]]) {
+    for (const i of items) await page.locator('.item-btn').nth(i).click();
     await tap(page, '大人');
     await tap(page, '1人');
     await tap(page, 'ちょうど');
@@ -77,9 +92,9 @@ test('表示モードのスクリーンショット', async ({ browser, request 
     await display.screenshot({ path: path.join(OUT, `${palette}-display-idle-phone.png`), fullPage: true });
 
     // 会計中：案1×2・セット×1、学生・2人、1,000円預かり
-    await page.locator('.item-btn', { hasText: '案1' }).click();
-    await page.locator('.item-btn', { hasText: '案1' }).click();
-    await page.locator('.item-btn', { hasText: 'セット' }).click();
+    await page.locator('.item-btn').nth(0).click();
+    await page.locator('.item-btn').nth(0).click();
+    await page.locator('.item-btn').nth(3).click();
     await tap(page, '学生');
     await tap(page, '2人');
     await tap(page, '1,000');

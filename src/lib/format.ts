@@ -1,12 +1,15 @@
-import { ITEM_LABELS, type SaleLine } from '../domain/types';
+import { ITEM_LABELS, type ItemCode, type SaleLine } from '../domain/types';
 
 export function yen(n: number): string {
   return `¥${Math.round(n).toLocaleString('ja-JP')}`;
 }
 
-/** 例：案1×2・セット×1 */
-export function describeLines(lines: Pick<SaleLine, 'item' | 'quantity'>[]): string {
-  return lines.map((l) => `${ITEM_LABELS[l.item]}×${l.quantity}`).join('・');
+/** 例：案1×2・セット×1（labels は設定の表示名。D-29） */
+export function describeLines(
+  lines: Pick<SaleLine, 'item' | 'quantity'>[],
+  labels: Record<ItemCode, string> = ITEM_LABELS,
+): string {
+  return lines.map((l) => `${labels[l.item]}×${l.quantity}`).join('・');
 }
 
 /** timestamp（ローカルISO）から HH:MM */

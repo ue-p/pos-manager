@@ -13,11 +13,11 @@ import {
 } from '../domain/aggregate';
 import { remainingStock } from '../domain/stock';
 import { todayLocalDate } from '../domain/time';
-import { DESIGNS, GROUP_TYPE_LABELS, ITEM_LABELS, ITEMS } from '../domain/types';
+import { DESIGNS, GROUP_TYPE_LABELS, ITEMS } from '../domain/types';
 import { percent, yen } from '../lib/format';
 
 export function DashboardPage() {
-  const { transactions, vrVisits, settings } = usePos();
+  const { transactions, vrVisits, settings, itemLabels } = usePos();
   const dates = useMemo(() => distinctDates([...transactions, ...vrVisits]), [transactions, vrVisits]);
   const today = todayLocalDate();
   const [date, setDate] = useState<string | null>(() => (dates.includes(today) ? today : null));
@@ -83,12 +83,12 @@ export function DashboardPage() {
             ariaLabel="絵柄別の販売枚数"
             data={DESIGNS.map((d) => ({
               key: d,
-              label: ITEM_LABELS[d],
+              label: itemLabels[d],
               value: s.soldByDesign[d],
               valueLabel: `${s.soldByDesign[d]}枚`,
               tooltip: (
                 <>
-                  <strong>{ITEM_LABELS[d]}</strong>
+                  <strong>{itemLabels[d]}</strong>
                   <br />
                   販売 {s.soldByDesign[d]}枚（セット分を含む）
                   <br />
@@ -102,7 +102,7 @@ export function DashboardPage() {
             ariaLabel="商品別の販売数"
             data={ITEMS.map((i) => ({
               key: i,
-              label: ITEM_LABELS[i],
+              label: itemLabels[i],
               value: s.itemQuantities[i],
               valueLabel: `${s.itemQuantities[i]}個`,
             }))}

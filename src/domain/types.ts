@@ -121,6 +121,8 @@ export interface Settings {
   test_mode: boolean;
   low_stock_threshold: number;
   float_amount: number;
+  /** シールの表示名（画面に出す名前だけ。空欄・未設定は「案N」。D-29） */
+  item_labels: Partial<Record<DesignCode, string>>;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -130,6 +132,7 @@ export const DEFAULT_SETTINGS: Settings = {
   test_mode: false,
   low_stock_threshold: 10,
   float_amount: 0,
+  item_labels: {},
 };
 
 /** 集計・在庫計算の対象になる記録か（取消・テストを除外） */

@@ -17,7 +17,8 @@ import {
 import { closingDifference, systemCashSales } from '../domain/aggregate';
 import { compareByTime } from '../domain/transaction';
 import { toLocalIsoString, todayLocalDate } from '../domain/time';
-import { DESIGNS, ITEM_LABELS, ITEMS, type Settings } from '../domain/types';
+import { ITEM_LABEL_MAX, validateItemLabels } from '../domain/itemLabels';
+import { DESIGNS, ITEM_LABELS, ITEMS, type DesignCode, type Settings } from '../domain/types';
 import { logout } from '../lib/auth';
 import { newCashierId, REGISTER_IDS, registerLabel } from '../lib/device';
 import { formatAgo, hhmm, yen } from '../lib/format';
@@ -34,6 +35,7 @@ export function SettingsPage() {
       <ExportSection />
       <TestModeSection />
       <PriceStockSection />
+      <ItemLabelSection />
       <ActionLogSection />
       <ClosingSection />
       <section className="panel">
@@ -316,7 +318,7 @@ function toForm(s: Settings): NumForm {
 }
 
 function PriceStockSection() {
-  const { settings, settingsStored } = usePos();
+  const { settings, settingsStored, itemLabels } = usePos();
   const toast = useToast();
   const original = useMemo(() => toForm(settings), [settings]);
   const [form, setForm] = useState<NumForm>(original);
@@ -367,9 +369,9 @@ function PriceStockSection() {
       <h2 className="panel-title">価格・在庫</h2>
       {!settingsStored && <p className="warn-text">まだ設定が保存されていません（既定値で動作中）。確認して保存してください。</p>}
       <h3 className="sub-title">価格</h3>
-      <div className="form-grid">{ITEMS.map((i) => field(`price_${i}`, ITEM_LABELS[i], '円'))}</div>
+      <div className="form-grid">{ITEMS.map((i) => field(`price_${i}`, itemLabels[i], '円'))}</div>
       <h3 className="sub-title">初期在庫</h3>
-      <div className="form-grid">{DESIGNS.map((d) => field(`stock_${d}`, ITEM_LABELS[d], '枚'))}</div>
+      <div className="form-grid">{DESIGNS.map((d) => field(`stock_${d}`, itemLabels[d], '枚'))}</div>
       <h3 className="sub-title">その他</h3>
       <div className="form-grid">
         {field('target_amount', '回収目標額（制作費）', '円')}
@@ -391,6 +393,74 @@ function PriceStockSection() {
           元に戻す
         </button>
         {invalid && <span className="error">0以上の整数で入力してください</span>}
+      </div>
+    </section>
+  );
+}
+
+/** シールの表示名（D-29）。画面に出す名前だけを変える。CSV のコード値（design_1〜3）は変わらない */
+function ItemLabelSection() {
+  const { settings } = usePos();
+  const toast = useToast();
+  const original = useMemo(
+    () => Object.fromEntries(DESIGNS.map((d) => [d, settings.item_labels[d] ?? ''])) as Record<DesignCode, string>,
+    [settings.item_labels],
+  );
+  const [form, setForm] = useState(original);
+  const [dirty, setDirty] = useState(false);
+  useEffect(() => {
+    if (!dirty) setForm(original);
+  }, [original, dirty]);
+  const errors = validateItemLabels(form);
+  const invalid = Object.keys(errors).length > 0;
+
+  const save = () => {
+    if (invalid) return;
+    const item_labels = Object.fromEntries(DESIGNS.map((d) => [d, form[d].trim()])) as Record<DesignCode, string>;
+    saveSettings({ item_labels });
+    setDirty(false);
+    toast('シールの表示名を保存しました');
+  };
+
+  return (
+    <section className="panel">
+      <h2 className="panel-title">シールの表示名</h2>
+      <p className="muted small">
+        レジ画面・お客さん用画面・ダッシュボードに出す名前です（{ITEM_LABEL_MAX}文字まで）。空欄にすると「案1〜3」に戻ります。
+        CSV の値（design_1〜design_3）は変わりません。
+      </p>
+      <div className="form-grid">
+        {DESIGNS.map((d) => (
+          <label className="field" key={d}>
+            <span>{ITEM_LABELS[d]}の表示名</span>
+            <input
+              value={form[d]}
+              placeholder={ITEM_LABELS[d]}
+              maxLength={ITEM_LABEL_MAX * 2}
+              aria-invalid={errors[d] !== undefined}
+              onChange={(e) => {
+                setForm((f) => ({ ...f, [d]: e.target.value }));
+                setDirty(true);
+              }}
+            />
+            {errors[d] && <span className="error small">{errors[d]}</span>}
+          </label>
+        ))}
+      </div>
+      <div className="form-row">
+        <button className="btn btn--primary" disabled={!dirty || invalid} onClick={save}>
+          保存
+        </button>
+        <button
+          className="btn"
+          disabled={!dirty}
+          onClick={() => {
+            setForm(original);
+            setDirty(false);
+          }}
+        >
+          元に戻す
+        </button>
       </div>
     </section>
   );

@@ -14,6 +14,8 @@ export interface DisplayState {
   change: number;
   /** 待機表示用の価格と売り切れ（お客さん用画面は settings を読めないため一緒に送る） */
   prices: Prices;
+  /** シールの表示名（D-29。ログインなしで読めるが、名前は個人情報ではない） */
+  labels: Record<ItemCode, string>;
   sold_out: ItemCode[];
   is_test: boolean;
   updated_at_ms: number;

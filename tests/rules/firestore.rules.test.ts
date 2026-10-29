@@ -175,6 +175,8 @@ describe('display_state', () => {
     received: 1000,
     change: 500,
     prices: { design_1: 200, design_2: 200, design_3: 200, set: 500 },
+    // シールの表示名（D-29。画面に出す名前だけ。個人情報ではない）
+    labels: { design_1: 'ぴょん丸', design_2: '案2', design_3: '案3', set: 'セット' },
     sold_out: [],
     is_test: false,
     updated_at_ms: 1,

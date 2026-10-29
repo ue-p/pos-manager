@@ -944,20 +944,26 @@ input[aria-invalid='true'] {
 /* 横棒 */
 .hbar {
   display: grid;
-  gap: 8px;
+  /* 名前の欄の幅はグラフ全体でそろえる（一番長い名前に合わせ、9文字分ほどを超えたら折り返す。D-29） */
+  grid-template-columns: minmax(56px, max-content) 1fr;
+  column-gap: 10px;
+  row-gap: 8px;
 }
 .hbar-row {
   position: relative;
   display: grid;
-  grid-template-columns: 56px 1fr;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   align-items: center;
-  gap: 10px;
   min-height: 32px;
   outline: none;
 }
 .hbar-label {
   font-size: 0.9rem;
   color: var(--text-2);
+  max-width: 9em;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
 }
 .hbar-track {
   display: flex;
@@ -1609,4 +1615,47 @@ input[aria-invalid='true'] {
   background: var(--accent-soft);
   color: var(--text);
   padding: 2px 4px 2px 12px;
+}
+
+/* ---------- シールの表示名（D-29）：最大12文字。長くてもボタン・カードからはみ出さないように折り返す ---------- */
+.item-btn .item-name,
+.menu-card .menu-name,
+.cart-name,
+.stock-chip,
+.display-line-name {
+  overflow-wrap: anywhere;
+  word-break: normal;
+  min-width: 0;
+}
+.cart-name,
+.display-line-name {
+  flex-wrap: wrap;
+}
+.menu-card {
+  min-width: 0;
+}
+.menu-card .menu-name {
+  line-height: 1.2;
+}
+@media (max-width: 600px) {
+  .item-btn .item-name {
+    font-size: 1.1rem;
+    line-height: 1.2;
+  }
+  .menu-card .menu-name {
+    font-size: 1.3rem;
+  }
+}
+/* 個数のバッジ（右上）と長い名前が重ならないよう、横並びのときは右に余白をとる */
+.item-btn .item-text {
+  padding-right: 30px;
+}
+/* お客さん用画面の明細：金額は折り返さず、長い名前のほうを折り返す */
+.display-lines td.num {
+  white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .item-btn .item-text {
+    padding-right: 0; /* スマホは縦並び（バッジは画像の横）なので不要 */
+  }
 }
