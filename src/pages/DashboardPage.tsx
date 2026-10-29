@@ -11,6 +11,7 @@ import {
   summarize,
   totalSales,
 } from '../domain/aggregate';
+import { remainingSets, soldSets } from '../domain/setLimit';
 import { remainingStock } from '../domain/stock';
 import { todayLocalDate } from '../domain/time';
 import { DESIGNS, GROUP_TYPE_LABELS, ITEMS } from '../domain/types';
@@ -32,6 +33,9 @@ export function DashboardPage() {
   const cumulative = totalSales(transactions);
   const toTarget = remainingToTarget(cumulative, settings.target_amount);
   const remaining = remainingStock(settings.initial_stock, transactions);
+  // セットの販売上限は全期間で数える（D-30）
+  const setsSold = soldSets(transactions);
+  const setsLeft = remainingSets(settings.set_limit, transactions);
   const sheets = s.soldByDesign.design_1 + s.soldByDesign.design_2 + s.soldByDesign.design_3;
 
   return (
@@ -74,6 +78,11 @@ export function DashboardPage() {
         <Tile label="客単価" value={s.averageSpend === null ? '—' : yen(s.averageSpend)} />
         <Tile label="VR体験者" value={`${s.vrCount}人`} />
         <Tile label="購入率" value={percent(s.purchaseRate)} hint="購入組数 ÷ VR体験者数" />
+        <Tile
+          label="セット 販売済み／上限"
+          value={`${setsSold}／${settings.set_limit}`}
+          hint={`全期間・残り ${setsLeft}セット`}
+        />
       </section>
 
       <div className="dash-grid">

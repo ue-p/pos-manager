@@ -3,13 +3,22 @@ import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '../components/Toast';
 import { downloadExportZip } from '../data/exportZip';
 import { usePos } from '../data/PosDataProvider';
-import { saveActionLog, saveCashier, saveRegisterClosing, saveSettings, setTestMode, updateCashier } from '../data/repo';
+import {
+  saveActionLog,
+  saveCashier,
+  saveRegisterClosing,
+  saveSettings,
+  setSetLimit,
+  setTestMode,
+  updateCashier,
+} from '../data/repo';
 import { CASHIER_NAME_MAX, validateCashierName } from '../domain/cashier';
 import {
   BACKUP_WARN_MINUTES,
   backupStatus,
   createCsvExportLog,
   createManualLog,
+  createSetLimitLog,
   createTestModeLog,
   lastExportMs,
   recentLogsForList,
@@ -18,6 +27,7 @@ import { closingDifference, systemCashSales } from '../domain/aggregate';
 import { compareByTime } from '../domain/transaction';
 import { toLocalIsoString, todayLocalDate } from '../domain/time';
 import { ITEM_LABEL_MAX, validateItemLabels } from '../domain/itemLabels';
+import { parseSetLimit, remainingSets, SET_LIMIT_MAX, soldSets } from '../domain/setLimit';
 import { DESIGNS, ITEM_LABELS, ITEMS, type DesignCode, type Settings } from '../domain/types';
 import { logout } from '../lib/auth';
 import { newCashierId, REGISTER_IDS, registerLabel } from '../lib/device';
@@ -35,6 +45,7 @@ export function SettingsPage() {
       <ExportSection />
       <TestModeSection />
       <PriceStockSection />
+      <SetLimitSection />
       <ItemLabelSection />
       <ActionLogSection />
       <ClosingSection />
@@ -394,6 +405,87 @@ function PriceStockSection() {
         </button>
         {invalid && <span className="error">0以上の整数で入力してください</span>}
       </div>
+    </section>
+  );
+}
+
+/** セットの販売上限（D-30）。変えると施策ログに変更前→変更後を自動で記録する */
+function SetLimitSection() {
+  const { settings, transactions, registerId, deviceId } = usePos();
+  const toast = useToast();
+  const current = settings.set_limit;
+  const [input, setInput] = useState(String(current));
+  const [dirty, setDirty] = useState(false);
+  useEffect(() => {
+    if (!dirty) setInput(String(current));
+  }, [current, dirty]);
+  const sold = soldSets(transactions);
+  const next = parseSetLimit(input);
+
+  const save = () => {
+    if (next === null || next === current) return;
+    const below = next < sold ? `\n販売済み（${sold}セット）より少ないため、残りは0セットになります。` : '';
+    if (!window.confirm(`セットの販売上限を ${current} → ${next} セットに変更しますか？${below}\n施策ログに自動で記録されます。`)) return;
+    // 変更と施策ログへの記録は1つのバッチで書く（D-30。テストモード中も is_test=false）
+    const log = createSetLimitLog({
+      before: current,
+      after: next,
+      logId: newUuid(),
+      timestamp: toLocalIsoString(new Date()),
+      registerId,
+      deviceId,
+    });
+    setSetLimit(next, log);
+    setDirty(false);
+    toast(`${log.note}（施策ログに記録）`);
+  };
+
+  return (
+    <section className="panel">
+      <h2 className="panel-title">セットの販売上限</h2>
+      <p>
+        上限 <strong className="num">{current}</strong>セット ／ 販売済み <strong className="num">{sold}</strong>セット ／ 残り{' '}
+        <strong className="num">{remainingSets(current, transactions)}</strong>セット
+      </p>
+      <div className="form-row">
+        <label className="field field--num">
+          <span>新しい上限（0〜{SET_LIMIT_MAX}）</span>
+          <span className="input-unit">
+            <input
+              inputMode="numeric"
+              aria-label="セットの販売上限"
+              value={input}
+              aria-invalid={next === null}
+              onChange={(e) => {
+                setInput(e.target.value.trim());
+                setDirty(true);
+              }}
+            />
+            セット
+          </span>
+        </label>
+        <button className="btn btn--primary" disabled={next === null || next === current} onClick={save}>
+          保存
+        </button>
+        <button
+          className="btn"
+          disabled={!dirty}
+          onClick={() => {
+            setInput(String(current));
+            setDirty(false);
+          }}
+        >
+          元に戻す
+        </button>
+      </div>
+      {next === null && <p className="error small">0〜{SET_LIMIT_MAX}の整数で入力してください</p>}
+      {next !== null && next !== current && next < sold && (
+        <p className="warn-text small">販売済み（{sold}セット）より少ないため、保存すると残りは0セットになります。</p>
+      )}
+      <p className="muted small">
+        全端末で共有されます。取消・テストモードの会計は数えません。{SET_LIMIT_MAX}セットで実質制限なしです。
+        変更すると施策ログに自動で記録されます（分析用）。
+      </p>
     </section>
   );
 }

@@ -48,7 +48,7 @@ SCHEMAS: dict[str, dict[str, str]] = {
 CODES = {
     "item": {"design_1", "design_2", "design_3", "set"},
     "group_type": {"family", "student", "adult", "other", "unknown"},
-    "log_type": {"manual", "test_mode_on", "test_mode_off", "csv_export"},
+    "log_type": {"manual", "test_mode_on", "test_mode_off", "csv_export", "set_limit_change"},
 }
 
 TIMESTAMP_RE = r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$"
@@ -57,6 +57,8 @@ JST_OFFSET = pd.Timedelta(hours=9)
 LOCAL_DATETIME_RE = r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$"
 # 担当者ID（D-27）。名前は CSV に出さない。機能追加前の記録は unknown
 CASHIER_ID_RE = r"^(cs_[a-z0-9]{4}|unknown)$"
+# セットの販売上限の変更の記録（D-30）。note から変更前・変更後（0〜100）を取り出せる形に固定している
+SET_LIMIT_NOTE_RE = r"^セットの販売上限を変更した（(\d+)→(\d+)）$"
 
 
 def load(source: Path) -> dict[str, bytes]:
@@ -154,11 +156,21 @@ def main() -> int:
 
     logs = frames.get("action_logs.csv")
     if logs is not None and len(logs) > 0:
-        # 自動記録（テストモード切替 D-24・CSVエクスポート D-25）は常に is_test=false
+        # 自動記録（テストモード切替 D-24・CSVエクスポート D-25・セットの販売上限 D-30）は常に is_test=false
         auto = logs[logs["log_type"] != "manual"]
         if auto["is_test"].any():
-            errors.append("action_logs.csv: 自動記録（test_mode_on/off・csv_export）に is_test=true の行がある")
+            errors.append("action_logs.csv: 自動記録（test_mode_on/off・csv_export・set_limit_change）に is_test=true の行がある")
         print("施策ログ:", logs["log_type"].value_counts().sort_index().to_dict())
+        limits = logs[logs["log_type"] == "set_limit_change"]
+        if len(limits) > 0:
+            values = limits["note"].astype(str).str.extract(SET_LIMIT_NOTE_RE)
+            if values.isna().any().any():
+                errors.append("action_logs.csv: set_limit_change の note が「セットの販売上限を変更した（変更前→変更後）」の形でない行がある")
+            elif not values.astype(int).isin(range(0, 101)).all().all():
+                errors.append("action_logs.csv: set_limit_change の上限が 0〜100 の範囲外の行がある")
+            else:
+                history = [f"{t} {b}→{a}" for t, (b, a) in zip(limits["local_datetime"], values.itertuples(index=False))]
+                print("セットの販売上限の変更:", history)
 
     if errors:
         print("\nNG:")

@@ -82,8 +82,8 @@ export interface VrVisit {
   is_test: boolean;
 }
 
-/** 施策ログの種類：手入力 / テストモードをオンにした / オフにした（D-24）/ CSVをエクスポートした（D-25） */
-export const LOG_TYPES = ['manual', 'test_mode_on', 'test_mode_off', 'csv_export'] as const;
+/** 施策ログの種類：手入力 / テストモードをオンにした / オフにした（D-24）/ CSVをエクスポートした（D-25）/ セットの販売上限を変えた（D-30） */
+export const LOG_TYPES = ['manual', 'test_mode_on', 'test_mode_off', 'csv_export', 'set_limit_change'] as const;
 export type LogType = (typeof LOG_TYPES)[number];
 
 export interface ActionLog {
@@ -123,6 +123,8 @@ export interface Settings {
   float_amount: number;
   /** シールの表示名（画面に出す名前だけ。空欄・未設定は「案N」。D-29） */
   item_labels: Partial<Record<DesignCode, string>>;
+  /** セットの販売上限（0〜100セット。D-30） */
+  set_limit: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -133,6 +135,7 @@ export const DEFAULT_SETTINGS: Settings = {
   low_stock_threshold: 10,
   float_amount: 0,
   item_labels: {},
+  set_limit: 100,
 };
 
 /** 集計・在庫計算の対象になる記録か（取消・テストを除外） */

@@ -67,6 +67,10 @@ export function DisplayPage() {
                   <ItemArt item={item} size="lg" className="menu-art" />
                   <div className="menu-name">{labels[item]}</div>
                   <div className="menu-price">{soldOut ? '売り切れ' : yen(state.prices[item])}</div>
+                  {/* セットの残り数（D-30）。0 になったら「売り切れ」だけを出す */}
+                  {item === 'set' && !soldOut && state.set_remaining !== undefined && (
+                    <div className="menu-remaining">残り {state.set_remaining}セット</div>
+                  )}
                   {item === 'set' && <div className="menu-note">{setContentsNote(labels)}</div>}
                 </div>
               );

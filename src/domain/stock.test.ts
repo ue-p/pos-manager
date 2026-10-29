@@ -18,16 +18,16 @@ describe('在庫計算', () => {
 
   it('在庫ちょうど0でボタン無効', () => {
     const remaining: Stock = { design_1: 0, design_2: 5, design_3: 5 };
-    expect(canAddItem('design_1', EMPTY_CART, remaining)).toBe(false);
-    expect(canAddItem('set', EMPTY_CART, remaining)).toBe(false);
-    expect(canAddItem('design_2', EMPTY_CART, remaining)).toBe(true);
+    expect(canAddItem('design_1', EMPTY_CART, remaining, Infinity)).toBe(false);
+    expect(canAddItem('set', EMPTY_CART, remaining, Infinity)).toBe(false);
+    expect(canAddItem('design_2', EMPTY_CART, remaining, Infinity)).toBe(true);
   });
 
   it('カートに入っている分も差し引いて判定する', () => {
     const remaining: Stock = { design_1: 2, design_2: 9, design_3: 9 };
-    expect(canAddItem('design_1', cartOf(['set']), remaining)).toBe(true);
-    expect(canAddItem('design_1', cartOf(['set', 'design_1']), remaining)).toBe(false);
-    expect(canAddItem('set', cartOf(['set', 'set']), remaining)).toBe(false);
+    expect(canAddItem('design_1', cartOf(['set']), remaining, Infinity)).toBe(true);
+    expect(canAddItem('design_1', cartOf(['set', 'design_1']), remaining, Infinity)).toBe(false);
+    expect(canAddItem('set', cartOf(['set', 'set']), remaining, Infinity)).toBe(false);
   });
 
   it('残りわずかの判定は閾値以下', () => {

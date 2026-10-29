@@ -1168,6 +1168,11 @@ input[aria-invalid='true'] {
   margin-top: 6px;
   color: var(--text-2);
 }
+.menu-remaining {
+  font-size: clamp(1.1rem, 2.6vw, 1.7rem);
+  font-weight: 700;
+  color: var(--tone-ink);
+}
 .menu-card.is-soldout {
   opacity: 0.45;
 }

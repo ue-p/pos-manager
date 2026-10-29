@@ -178,12 +178,18 @@ describe('display_state', () => {
     // シールの表示名（D-29。画面に出す名前だけ。個人情報ではない）
     labels: { design_1: 'ぴょん丸', design_2: '案2', design_3: '案3', set: 'セット' },
     sold_out: [],
+    // 売れるセットの残り数（D-30）
+    set_remaining: 12,
     is_test: false,
     updated_at_ms: 1,
   };
 
   it('未ログインでも読めるが、書けるのは共通アカウントだけ', async () => {
     await assertSucceeds(setDoc(doc(staffDb(), 'display_state', 'reg_1'), state));
+    // 古い版のレジ（set_remaining なし）の表示データも受け付ける
+    const { set_remaining: _old, ...withoutRemaining } = state;
+    void _old;
+    await assertSucceeds(setDoc(doc(staffDb(), 'display_state', 'reg_1'), withoutRemaining));
     await assertSucceeds(getDoc(doc(anonDb(), 'display_state', 'reg_1')));
     await assertFails(setDoc(doc(anonDb(), 'display_state', 'reg_1'), state));
     await assertFails(setDoc(doc(staffDb(), 'display_state', 'reg_1'), { ...state, register_id: 'reg_2' }));
@@ -341,5 +347,77 @@ describe('CSVエクスポートの記録（D-25）', () => {
     await assertFails(setDoc(doc(staffDb(), 'action_logs', 'e2'), exportLog('e2', { is_test: true })));
     await assertFails(setDoc(doc(otherDb(), 'action_logs', 'e3'), exportLog('e3')));
     await assertFails(setDoc(doc(anonDb(), 'action_logs', 'e4'), exportLog('e4')));
+  });
+});
+
+describe('セットの販売上限と施策ログ（D-30）', () => {
+  const limitLog = (id: string, before: number, after: number, extra: Record<string, unknown> = {}) => ({
+    log_id: id,
+    timestamp: '2026-11-03T13:00:00+09:00',
+    log_type: 'set_limit_change',
+    note: `セットの販売上限を変更した（${before}→${after}）`,
+    register_id: 'reg_1',
+    device_id: 'dev_a1b2',
+    is_test: false,
+    ...extra,
+  });
+
+  /** アプリと同じ形のバッチ（settings の上限 + 記録） */
+  const limitBatch = (db: TestDb, limit: unknown, logId: string, log: Record<string, unknown> = limitLog(logId, 100, Number(limit))) => {
+    const b = writeBatch(db as unknown as Firestore);
+    b.set(doc(db, 'settings', 'current'), { set_limit: limit, set_limit_log_id: logId }, { merge: true });
+    b.set(doc(db, 'action_logs', logId), log);
+    return b.commit();
+  };
+
+  beforeEach(async () => {
+    // 本番と同じく、上限を一度も保存していない settings（既定の100として扱う）
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'settings', 'current'), { test_mode: false, prices: { set: 500 } });
+    });
+  });
+
+  it('変更と記録を同じバッチで書けば通る（0〜100）', async () => {
+    await assertSucceeds(limitBatch(staffDb(), 40, 'l1'));
+    await assertSucceeds(limitBatch(staffDb(), 0, 'l2', limitLog('l2', 40, 0)));
+    await assertSucceeds(limitBatch(staffDb(), 100, 'l3', limitLog('l3', 0, 100)));
+  });
+
+  it('範囲外・整数でない上限は保存できない', async () => {
+    await assertFails(limitBatch(staffDb(), 101, 'b1'));
+    await assertFails(limitBatch(staffDb(), -1, 'b2'));
+    await assertFails(limitBatch(staffDb(), 1.5, 'b3'));
+    await assertFails(limitBatch(staffDb(), '50', 'b4'));
+  });
+
+  it('記録なしで上限だけ変えることはできない。既存の記録の使い回しも不可', async () => {
+    await assertFails(setDoc(doc(staffDb(), 'settings', 'current'), { set_limit: 50 }, { merge: true }));
+    await assertFails(setDoc(doc(staffDb(), 'settings', 'current'), { set_limit: 50, set_limit_log_id: 'none' }, { merge: true }));
+    await assertSucceeds(limitBatch(staffDb(), 50, 'r1'));
+    await assertFails(setDoc(doc(staffDb(), 'settings', 'current'), { set_limit: 60, set_limit_log_id: 'r1' }, { merge: true }));
+  });
+
+  it('変更なしで記録だけ作ることはできない。is_test=true にもできない', async () => {
+    await assertFails(setDoc(doc(staffDb(), 'action_logs', 'x1'), limitLog('x1', 100, 50)));
+    await assertFails(limitBatch(staffDb(), 50, 'x2', limitLog('x2', 100, 50, { is_test: true })));
+  });
+
+  it('上限を変えない設定の保存（価格など）は記録なしで通る', async () => {
+    await assertSucceeds(limitBatch(staffDb(), 30, 'p1'));
+    await assertSucceeds(setDoc(doc(staffDb(), 'settings', 'current'), { prices: { set: 600 } }, { merge: true }));
+  });
+
+  it('オフラインの2台が同じ元の値から変えても、両方届く（変更前の値はルールで照合しない）', async () => {
+    await assertSucceeds(limitBatch(staffDb(), 80, 'a1', limitLog('a1', 100, 80)));
+    await assertSucceeds(limitBatch(staffDb(), 90, 'b1', limitLog('b1', 100, 90)));
+  });
+
+  it('オフライン復帰時の再送（同じ内容の上書き）は通る', async () => {
+    await assertSucceeds(limitBatch(staffDb(), 70, 'o1'));
+    const db = staffDb();
+    const b = writeBatch(db as unknown as Firestore);
+    b.set(doc(db, 'settings', 'current'), { set_limit: 70, set_limit_log_id: 'o1', updated_at: serverTimestamp() }, { merge: true });
+    b.set(doc(db, 'action_logs', 'o1'), { ...limitLog('o1', 100, 70), created_at: serverTimestamp() });
+    await assertSucceeds(b.commit());
   });
 });

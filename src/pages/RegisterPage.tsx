@@ -9,6 +9,7 @@ import { saveTransaction, saveVrVisit, voidTransaction, voidVrVisit } from '../d
 import { remainingToTarget, totalSales } from '../domain/aggregate';
 import { addItem, buildLines, cartTotal, decrementItem, EMPTY_CART, isCartEmpty, type Cart } from '../domain/cart';
 import { addReceived, calcChange, confirmBlockers, exactReceived, RECEIVED_BUTTONS } from '../domain/payment';
+import { availableSets, remainingSets } from '../domain/setLimit';
 import { canAddItem, isLowStock, remainingAfterCart, remainingStock } from '../domain/stock';
 import { localDateOf, toLocalIsoString, todayLocalDate } from '../domain/time';
 import { createTransaction, lastVoidableTransaction } from '../domain/transaction';
@@ -46,6 +47,9 @@ export function RegisterPage() {
   const total = cartTotal(cart, prices);
   const remaining = useMemo(() => remainingStock(settings.initial_stock, transactions), [settings.initial_stock, transactions]);
   const afterCart = remainingAfterCart(remaining, cart);
+  // セットの販売上限（D-30）。取消・テストを除いた販売済みのセット数から毎回計算する
+  const setsLeft = useMemo(() => remainingSets(settings.set_limit, transactions), [settings.set_limit, transactions]);
+  const canAdd = (item: ItemCode) => canAddItem(item, cart, remaining, setsLeft);
   const blockers = confirmBlockers({ cart, total, received, groupType, groupSize, cashierSelected: currentCashier !== null });
   const sales = useMemo(() => totalSales(transactions), [transactions]);
   const lastTx = lastVoidableTransaction(transactions, deviceId);
@@ -68,8 +72,9 @@ export function RegisterPage() {
     };
   }, [registerId]);
 
-  const soldOut = ITEMS.filter((i) => !canAddItem(i, EMPTY_CART, remaining));
+  const soldOut = ITEMS.filter((i) => !canAddItem(i, EMPTY_CART, remaining, setsLeft));
   const soldOutKey = soldOut.join(',');
+  const setRemaining = availableSets(remaining, setsLeft);
   useEffect(() => {
     const lines = done ? done.lines : buildLines(cart, prices);
     const state: DisplayState = {
@@ -82,6 +87,7 @@ export function RegisterPage() {
       prices,
       labels: itemLabels,
       sold_out: soldOutKey ? (soldOutKey.split(',') as ItemCode[]) : [],
+      set_remaining: setRemaining,
       is_test: settings.test_mode,
       updated_at_ms: Date.now(),
     };
@@ -90,7 +96,7 @@ export function RegisterPage() {
     } catch (err) {
       console.warn('[display]', err);
     }
-  }, [cart, received, done, prices, itemLabels, total, registerId, soldOutKey, settings.test_mode]);
+  }, [cart, received, done, prices, itemLabels, total, registerId, soldOutKey, setRemaining, settings.test_mode]);
 
   // ---- 操作 ----
   const beginIfDone = () => {
@@ -99,7 +105,7 @@ export function RegisterPage() {
 
   const tapItem = (item: ItemCode) => {
     beginIfDone();
-    if (!canAddItem(item, cart, remaining)) return;
+    if (!canAdd(item)) return;
     setCart((c) => addItem(c, item));
   };
 
@@ -155,10 +161,18 @@ export function RegisterPage() {
           <h2 className="panel-title">商品</h2>
           <div className="item-grid">
             {ITEMS.map((item) => {
-              const left =
-                item === 'set' ? Math.min(...DESIGNS.map((d) => afterCart[d])) : afterCart[item];
-              const enabled = canAddItem(item, cart, remaining);
+              const enabled = canAdd(item);
               const low = item !== 'set' && isLowStock(remaining[item], settings.low_stock_threshold);
+              // セットは「残り◯セット」：販売上限の残りと3絵柄の在庫の少ない方から、カートの分を引いた数（D-30）
+              const stockOut = !canAddItem(item, cart, remaining, Infinity);
+              const stockText =
+                item === 'set'
+                  ? stockOut
+                    ? '在庫なし'
+                    : `残り ${availableSets(afterCart, setsLeft - cart.set)}セット`
+                  : enabled
+                    ? `残り ${afterCart[item]}`
+                    : '在庫なし';
               return (
                 <button
                   key={item}
@@ -171,7 +185,7 @@ export function RegisterPage() {
                     <span className="item-name">{itemLabels[item]}</span>
                     <span className="item-price">{yen(prices[item])}</span>
                     <span className="item-stock">
-                      {enabled ? `残り ${left}` : '在庫なし'}
+                      {stockText}
                       {low && enabled && ' ・残りわずか'}
                     </span>
                   </span>
@@ -210,7 +224,7 @@ export function RegisterPage() {
                     <button
                       className="btn btn--icon"
                       aria-label="1つ増やす"
-                      disabled={!canAddItem(l.item, cart, remaining)}
+                      disabled={!canAdd(l.item)}
                       onClick={() => setCart((c) => addItem(c, l.item))}
                     >
                       ＋
