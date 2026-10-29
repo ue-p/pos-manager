@@ -64,6 +64,24 @@ test('オフラインで再読み込み・開き直しをしても開ける', as
   await expect(display.locator('.display')).toBeVisible();
 });
 
+test('お客さん用画面をオンラインで一度も開いていなくても、オフラインで開ける（?reg= と &theme=dark）', async ({ browser }) => {
+  ctx = await browser.newContext();
+  const page = await ctx.newPage();
+  // オンラインではログイン画面だけを開く（お客さん用画面は開かない）
+  await page.goto('/login');
+  await waitControlled(page);
+  await ctx.setOffline(true);
+
+  const display = await ctx.newPage();
+  await display.goto('/display?reg=reg_1');
+  await expect(display.getByText('レジからの表示を待っています（reg_1）')).toBeVisible();
+
+  const dark = await ctx.newPage();
+  await dark.goto('/display?reg=reg_1&theme=dark');
+  await expect(dark.getByText('レジからの表示を待っています（reg_1）')).toBeVisible();
+  await expect(dark.locator('html')).toHaveAttribute('data-theme', 'dark');
+});
+
 test('新しい版が届くと［更新］が出る。会計の途中は押せず、押すと新しい版になる', async ({ browser }) => {
   ctx = await browser.newContext();
   const page = await ctx.newPage();
