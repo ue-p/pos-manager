@@ -31,10 +31,14 @@ export function remainingAfterCart(remaining: Stock, cart: Cart): Stock {
   };
 }
 
-/** その商品をもう1個カートに入れられるか（セットは3絵柄すべてに余りが必要） */
-export function canAddItem(item: ItemCode, cart: Cart, remaining: Stock): boolean {
+/**
+ * その商品をもう1個カートに入れられるか。セットは3絵柄すべてに余りが必要で、
+ * さらにカートのセットの個数が残りセット数（販売上限。D-30）を超えないこと
+ */
+export function canAddItem(item: ItemCode, cart: Cart, remaining: Stock, setsLeft: number): boolean {
   const after = remainingAfterCart(remaining, addItem(cart, item));
-  return DESIGNS.every((d) => after[d] >= 0);
+  if (!DESIGNS.every((d) => after[d] >= 0)) return false;
+  return item !== 'set' || cart.set + 1 <= setsLeft;
 }
 
 export function isLowStock(remainingQty: number, threshold: number): boolean {

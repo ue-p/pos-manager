@@ -17,6 +17,8 @@ export interface DisplayState {
   /** シールの表示名（D-29。ログインなしで読めるが、名前は個人情報ではない） */
   labels: Record<ItemCode, string>;
   sold_out: ItemCode[];
+  /** 売れるセットの残り数（販売上限と在庫の少ない方。D-30）。古い版のレジからのデータには無い */
+  set_remaining?: number;
   is_test: boolean;
   updated_at_ms: number;
 }

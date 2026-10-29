@@ -53,6 +53,24 @@ export function createCsvExportLog(input: LogBase & { fileName: string }): Actio
   };
 }
 
+/** 上限の変更の記録の note。分析で変更前・変更後を取り出せるよう形を固定する（D-30） */
+export function setLimitNote(before: number, after: number): string {
+  return `セットの販売上限を変更した（${before}→${after}）`;
+}
+
+/** セットの販売上限の変更の自動記録（D-30）。売れ行きを見て調整した記録なので、常に is_test=false */
+export function createSetLimitLog(input: LogBase & { before: number; after: number }): ActionLog {
+  return {
+    log_id: input.logId,
+    timestamp: input.timestamp,
+    log_type: 'set_limit_change',
+    note: setLimitNote(input.before, input.after),
+    register_id: input.registerId,
+    device_id: input.deviceId,
+    is_test: false,
+  };
+}
+
 /** 全端末の csv_export 記録のうち最新の時刻（ミリ秒）。1件もなければ null */
 export function lastExportMs(logs: ActionLog[]): number | null {
   let last: number | null = null;

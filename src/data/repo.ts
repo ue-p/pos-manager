@@ -66,8 +66,8 @@ export function saveRegisterClosing(c: RegisterClosing): void {
   fireAndForget('レジ締め', setDoc(doc(db, 'register_closings', c.closing_id), { ...c, created_at: serverTimestamp() }));
 }
 
-/** 設定の保存。test_mode は setTestMode() でだけ変える（記録と一緒に書くため） */
-export function saveSettings(patch: Partial<Omit<Settings, 'test_mode'>>): void {
+/** 設定の保存。test_mode は setTestMode()、set_limit は setSetLimit() でだけ変える（記録と一緒に書くため） */
+export function saveSettings(patch: Partial<Omit<Settings, 'test_mode' | 'set_limit'>>): void {
   fireAndForget('設定', setDoc(doc(db, 'settings', 'current'), { ...patch, updated_at: serverTimestamp() }, { merge: true }));
 }
 
@@ -85,4 +85,19 @@ export function setTestMode(on: boolean, log: ActionLog): void {
   );
   batch.set(doc(db, 'action_logs', log.log_id), { ...log, created_at: serverTimestamp() });
   fireAndForget('テストモードの切替', batch.commit());
+}
+
+/**
+ * セットの販売上限の変更と、その施策ログを1つのバッチで書く（D-30。テストモードの切替 D-24 と同じ形）。
+ * settings.set_limit_log_id で記録を指し、ルール側でも片方だけの書き込みを拒否する。
+ */
+export function setSetLimit(limit: number, log: ActionLog): void {
+  const batch = writeBatch(db);
+  batch.set(
+    doc(db, 'settings', 'current'),
+    { set_limit: limit, set_limit_log_id: log.log_id, updated_at: serverTimestamp() },
+    { merge: true },
+  );
+  batch.set(doc(db, 'action_logs', log.log_id), { ...log, created_at: serverTimestamp() });
+  fireAndForget('セットの販売上限', batch.commit());
 }

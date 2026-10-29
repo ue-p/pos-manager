@@ -3,6 +3,7 @@ import {
   backupStatus,
   createCsvExportLog,
   createManualLog,
+  createSetLimitLog,
   createTestModeLog,
   lastExportMs,
   normalizeActionLog,
@@ -31,6 +32,25 @@ describe('テストモード切替の自動記録（D-24）', () => {
       note: 'テストモードをオフにした',
       is_test: false,
     });
+  });
+});
+
+describe('セットの販売上限の変更の自動記録（D-30）', () => {
+  it('種類は set_limit_change、メモに変更前→変更後、常に is_test=false', () => {
+    expect(createSetLimitLog({ ...base, before: 100, after: 40 })).toEqual({
+      log_id: 'L1',
+      timestamp: '2026-11-03T09:00:00+09:00',
+      log_type: 'set_limit_change',
+      note: 'セットの販売上限を変更した（100→40）',
+      register_id: 'reg_2',
+      device_id: 'dev_a1b2',
+      is_test: false,
+    });
+  });
+
+  it('メモから変更前・変更後を取り出せる（分析用。check_csv.py と同じ形）', () => {
+    const { note } = createSetLimitLog({ ...base, before: 0, after: 100 });
+    expect(/^セットの販売上限を変更した（(\d+)→(\d+)）$/.exec(note)?.slice(1)).toEqual(['0', '100']);
   });
 });
 
