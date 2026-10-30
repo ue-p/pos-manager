@@ -16,7 +16,7 @@ Python / Tableau で前処理なしに分析できるデータを残すことが
 ## 技術スタック
 
 Vite + React + TypeScript / react-router / Firebase（Hosting, Authentication, Cloud Firestore）/
-Vitest / Firebase Emulator Suite / JSZip。詳細は D-01。
+Vitest / Firebase Emulator Suite / JSZip / Tailwind CSS v4（入口は `src/index.css`。既存の `src/styles.css` もそこから読む。preflight は使わない）。詳細は D-01・D-31。
 
 ## コマンド
 

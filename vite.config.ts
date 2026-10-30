@@ -1,6 +1,7 @@
 /// <reference types="vitest" />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 // アプリの版（設定画面に出す。実機でどの版が動いているか確かめるため）。E2E では APP_VERSION で上書きする
@@ -13,6 +14,8 @@ const APP_VERSION =
 export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
+    // D-31：Tailwind CSS（v4）。入口は src/index.css（既存の styles.css もそこから読み込む）
+    tailwindcss(),
     // D-28：アプリの画面一式を端末に保存し、オフラインでも再読み込み・開き直しができるようにする。
     // 新しい版は自動では切り替えず、状態バーの［更新］か次に開いたときに切り替える（registerType: 'prompt'）。
     // 緊急時は npm run build:no-sw（mode=nosw）でビルドして公開すると、端末の Service Worker と保存した画面を消す版になる

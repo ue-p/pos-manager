@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { initPwa } from './lib/pwa';
 import { initTheme } from './lib/theme';
-import './styles.css';
+import './index.css';
 
 // 表示モード（ライト／ダーク）を描画の前に決めて、ちらつきを防ぐ（D-26）
 initTheme();

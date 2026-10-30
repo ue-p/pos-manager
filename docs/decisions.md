@@ -20,7 +20,7 @@
 | 単体テスト | Vitest | ドメインロジック（計算・CSV）を検証 |
 | ルールのテスト | Firebase Emulator Suite + `@firebase/rules-unit-testing` | セキュリティルールの検証 |
 | E2E（任意） | Playwright | オフライン（`context.setOffline(true)`）での会計を検証 |
-| スタイル | 素のCSS（CSS Modules） | 依存を増やさない。ボタン48px以上を守りやすい |
+| スタイル | 素のCSS（`src/styles.css`）＋ Tailwind CSS v4（2026-10-30 追加：D-31） | 当初は依存を増やさないため素のCSS。今後は Tailwind に移していく |
 
 ## D-02 URL（状態：確定）
 
@@ -445,4 +445,19 @@ D-22（バックアップ通知を全端末共通にする）と D-23（エク�
 - `action_logs.csv` の `log_type` に値 `set_limit_change` が加わる（列は変えない。D-14）。`scripts/check_csv.py` はこの値を正しいコードとして扱い、`is_test=false`・`note` の形・値が 0〜100 であることを検査し、変更の履歴を表示する。
 
 **本番に出す順番**：表示データに `low_stock` が増えるため、**ルールのデプロイ → アプリの公開** の順にする（D-29 と同じ理由。新しいルールは古いアプリの書き込みもそのまま受け付ける）。
+
+## D-31 Tailwind CSS の導入（状態：確定 2026-10-30）
+
+スタイルを Tailwind CSS で書く方針に変える（ユーザーの指示）。既存の画面（`src/styles.css`）を崩さずに導入する。
+
+- 入れたもの：`tailwindcss` と `@tailwindcss/vite`（どちらも 4.3.3、開発用の依存）。設定ファイル（`tailwind.config.js`・PostCSS）は使わず、v4 の CSS での設定にする。
+- 入口は `src/index.css`（`src/main.tsx` から読み込む）。`styles.css` は中身を変えずに、ここから読み込む。
+- **層の順番**：`theme`（Tailwind の変数）＜ `base` ＜ `components`（既存の `styles.css` 全体）＜ `utilities`（Tailwind のクラス）。要素に Tailwind のクラスを足すと、既存のクラスより優先される。そのため、画面ごとに少しずつ Tailwind に置き換えていける（置き換えたら、使わなくなった `styles.css` の規則を消す）。
+- **Tailwind のリセット（preflight）は読み込まない**。読み込むと、見出し・ボタン・入力欄・画像などの既定の見た目が変わり、既存の画面が崩れるため。基本の整え（`box-sizing`、`body` の余白、ボタン・入力欄の文字）は、これまでどおり `styles.css` の先頭で行う。
+- **色**：`styles.css` の色の変数（D-26）を Tailwind の色として登録した（`@theme inline`）。例：`bg-surface`、`text-text-2`、`border-border`、`text-warn`、`bg-warn-soft`、`text-d1-ink`、`bg-confirm`。変数の値はライト／ダークで切り替わるので、これらのクラスは `dark:` を付けなくても両方の表示モードに対応する。Tailwind の既定の色（`red-500` など）も使えるが、表示モードに合わせるため、原則としてこれらの色を使う。
+- **`dark:`**：アプリの表示モードの決まりに合わせた（端末がダーク かつ ライト指定でない、または `data-theme="dark"`。`src/lib/theme.ts`）。
+- **クラス名の重なり**：既存のクラス `table`・`grow` は Tailwind にも同じ名前がある。既存の見た目を変えないよう、この2つ（と、テストの文字列から拾われる `sepia`）は Tailwind に作らせない（`@source not inline(...)`）。`styles.css` に Tailwind と同じ名前のクラスを足すときは、ここにも足す。
+- クラスを探す範囲は `src` だけ（docs・scripts の文章からクラスが作られないように）。
+- **確認したこと**：導入後のビルドで、`components` 層の中身が導入前の `styles.css` のビルドと一致すること（同じ方法で整形して比較）、Tailwind のクラスがまだ1つも出力されていないこと、層の外に規則が無いことを確かめた。つまり導入した時点では画面の見た目は変わらない。lint・typecheck・ユニット・E2E（Service Worker を含む）も合格。
+- ボタンは縦横48px以上（要件）を Tailwind で書くときも守る（例：`min-h-12 min-w-12`）。
 
