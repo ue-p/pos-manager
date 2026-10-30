@@ -51,7 +51,9 @@ export function DisplayPage() {
         </button>
       )}
       {state?.is_test && (
-        <div className="display-test absolute top-3 left-3 rounded-md bg-test px-2.5 py-0.5 text-[0.85rem] font-extrabold text-white">TEST</div>
+        <div className="display-test absolute top-3 left-3 rounded-md bg-test px-2.5 py-0.5 text-[0.85rem] font-extrabold text-white">
+          TEST
+        </div>
       )}
       {/* 開店前に全端末で版がそろっているかを確かめるため、隅に小さく出す（D-28） */}
       <div
@@ -61,7 +63,9 @@ export function DisplayPage() {
         版 {APP_VERSION}
       </div>
 
-      {mode === 'waiting' && <p className="text-[1.2rem] text-muted">レジからの表示を待っています（{registerId}）</p>}
+      {mode === 'waiting' && (
+        <p className="text-[1.2rem] text-muted">レジからの表示を待っています（{registerId}）</p>
+      )}
 
       {mode === 'idle' && state && (
         <div className="w-[min(1100px,100%)] text-center">
@@ -92,7 +96,9 @@ export function DisplayPage() {
                       {item === 'set' ? 'セット' : '枚'}
                     </div>
                   )}
-                  {item === 'set' && <div className="menu-note mt-1.5 text-text-2">{setContentsNote(labels)}</div>}
+                  {item === 'set' && (
+                    <div className="menu-note mt-1.5 text-text-2">{setContentsNote(labels)}</div>
+                  )}
                 </div>
               );
             })}
@@ -107,7 +113,9 @@ export function DisplayPage() {
               {state.lines.map((l) => (
                 <tr key={l.item} className={ITEM_TONE[l.item]}>
                   <td className={lineCell}>
-                    <span className={`inline-flex flex-wrap items-center gap-3 font-bold text-(--tone-ink) ${wrapName}`}>
+                    <span
+                      className={`inline-flex flex-wrap items-center gap-1 font-bold text-(--tone-ink) ${wrapName}`}
+                    >
                       <ItemArt item={l.item} className="size-[clamp(40px,7vw,72px)]" />
                       {labels[l.item]}
                     </span>
@@ -132,7 +140,9 @@ export function DisplayPage() {
                 <span className="num">{yen(state.received)}</span>
               </div>
               {(mode === 'done' || state.received >= state.total) && (
-                <div className={`display-change ${amountRow} text-[clamp(2.2rem,7vw,4.5rem)] font-extrabold text-ok`}>
+                <div
+                  className={`display-change ${amountRow} text-[clamp(2.2rem,7vw,4.5rem)] font-extrabold text-ok`}
+                >
                   <span>お釣り</span>
                   <span className="num">{yen(state.change)}</span>
                 </div>
@@ -140,7 +150,9 @@ export function DisplayPage() {
             </div>
           )}
           {mode === 'done' && (
-            <p className="display-thanks m-0 text-center text-[clamp(1.4rem,4vw,2.4rem)] font-bold">ありがとうございました！</p>
+            <p className="display-thanks m-0 text-center text-[clamp(1.4rem,4vw,2.4rem)] font-bold">
+              ありがとうございました！
+            </p>
           )}
         </div>
       )}
