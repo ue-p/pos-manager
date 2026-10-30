@@ -109,15 +109,15 @@ export function DisplayPage() {
       {(mode === 'cart' || mode === 'done') && state && (
         <div className="flex w-[min(900px,100%)] min-h-[calc(100dvh_-_2*clamp(16px,4vw,48px))] flex-col justify-between">
           {/* 明細テーブル：常に4行表示（空行で埋める） */}
-          <table className="display-lines w-full border-collapse text-[clamp(1.3rem,3.5vw,2.2rem)]">
+          <table className="display-lines w-full border-collapse text-[clamp(1.1rem,3vw,2.1rem)]">
             <tbody>
               {state.lines.map((l) => (
                 <tr key={l.item} className={ITEM_TONE[l.item]}>
                   <td className={lineCell}>
                     <span
-                      className={`inline-flex flex-wrap items-center gap-1 font-bold text-(--tone-ink) ${wrapName}`}
+                      className={`inline-flex flex-wrap items-center font-bold text-(--tone-ink) ${wrapName}`}
                     >
-                      <ItemArt item={l.item} className="size-[clamp(40px,7vw,72px)]" />
+                      <ItemArt item={l.item} className="size-[clamp(36px,6vw,60px)]" />
                       {labels[l.item]}
                     </span>
                   </td>
