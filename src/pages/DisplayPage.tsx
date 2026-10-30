@@ -117,7 +117,7 @@ export function DisplayPage() {
                     <span
                       className={`inline-flex flex-wrap items-center font-bold text-(--tone-ink) ${wrapName}`}
                     >
-                      <ItemArt item={l.item} className="size-[clamp(42px,6vw,72px)]" />
+                      <ItemArt item={l.item} className="size-[clamp(42px,6vw,60px)]" />
                       {labels[l.item]}
                     </span>
                   </td>
