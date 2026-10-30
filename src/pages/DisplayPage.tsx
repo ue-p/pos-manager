@@ -138,13 +138,13 @@ export function DisplayPage() {
             </tbody>
           </table>
           {/* 合計・お預かり・お釣り：画面下部に固定 */}
-          <div className="grid gap-[clamp(6px,2.5vw,14px)]">
+          <div className="grid gap-[clamp(6px,2vw,10px)]">
             <div className={`display-total ${amountRow} text-[clamp(2.2rem,7vw,4.5rem)] font-extrabold`}>
               <span>合計</span>
               <span className="num">{yen(state.total)}</span>
             </div>
             {(state.received > 0 || mode === 'done') && (
-              <div className="display-pay grid gap-2 text-[clamp(1.4rem,4vw,2.6rem)] font-bold text-text-2">
+              <div className="display-pay grid gap-1.2 text-[clamp(1.4rem,4vw,2.6rem)] font-bold text-text-2">
                 <div className={amountRow}>
                   <span>お預かり</span>
                   <span className="num">{yen(state.received)}</span>
