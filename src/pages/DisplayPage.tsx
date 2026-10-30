@@ -107,7 +107,8 @@ export function DisplayPage() {
       )}
 
       {(mode === 'cart' || mode === 'done') && state && (
-        <div className="grid max-h-full w-[min(900px,100%)] gap-[clamp(6px,2.5vw,14px)]">
+        <div className="flex w-[min(900px,100%)] self-stretch flex-col justify-between py-[clamp(16px,4vw,48px)]">
+          {/* 明細テーブル：常に4行表示（空行で埋める） */}
           <table className="display-lines w-full border-collapse text-[clamp(1.3rem,3.5vw,2.2rem)]">
             <tbody>
               {state.lines.map((l) => (
@@ -127,33 +128,43 @@ export function DisplayPage() {
                   <td className={`num ${lineCell} text-right whitespace-nowrap`}>{yen(l.amount)}</td>
                 </tr>
               ))}
+              {Array.from({ length: Math.max(0, 4 - state.lines.length) }).map((_, i) => (
+                <tr key={`empty-${i}`}>
+                  <td className={lineCell}>&nbsp;</td>
+                  <td className={lineCell}></td>
+                  <td className={lineCell}></td>
+                </tr>
+              ))}
             </tbody>
           </table>
-          <div className={`display-total ${amountRow} text-[clamp(2.2rem,7vw,4.5rem)] font-extrabold`}>
-            <span>合計</span>
-            <span className="num">{yen(state.total)}</span>
-          </div>
-          {(state.received > 0 || mode === 'done') && (
-            <div className="display-pay grid gap-2 text-[clamp(1.4rem,4vw,2.6rem)] font-bold text-text-2">
-              <div className={amountRow}>
-                <span>お預かり</span>
-                <span className="num">{yen(state.received)}</span>
-              </div>
-              {(mode === 'done' || state.received >= state.total) && (
-                <div
-                  className={`display-change ${amountRow} text-[clamp(2.2rem,7vw,4.5rem)] font-extrabold text-ok`}
-                >
-                  <span>お釣り</span>
-                  <span className="num">{yen(state.change)}</span>
-                </div>
-              )}
+          {/* 合計・お預かり・お釣り：画面下部に固定 */}
+          <div className="grid gap-[clamp(6px,2.5vw,14px)]">
+            <div className={`display-total ${amountRow} text-[clamp(2.2rem,7vw,4.5rem)] font-extrabold`}>
+              <span>合計</span>
+              <span className="num">{yen(state.total)}</span>
             </div>
-          )}
-          {mode === 'done' && (
-            <p className="display-thanks m-0 text-center text-[clamp(1.4rem,4vw,2.4rem)] font-bold">
-              ありがとうございました！
-            </p>
-          )}
+            {(state.received > 0 || mode === 'done') && (
+              <div className="display-pay grid gap-2 text-[clamp(1.4rem,4vw,2.6rem)] font-bold text-text-2">
+                <div className={amountRow}>
+                  <span>お預かり</span>
+                  <span className="num">{yen(state.received)}</span>
+                </div>
+                {(mode === 'done' || state.received >= state.total) && (
+                  <div
+                    className={`display-change ${amountRow} text-[clamp(2.2rem,7vw,4.5rem)] font-extrabold text-ok`}
+                  >
+                    <span>お釣り</span>
+                    <span className="num">{yen(state.change)}</span>
+                  </div>
+                )}
+              </div>
+            )}
+            {mode === 'done' && (
+              <p className="display-thanks m-0 text-center text-[clamp(1.4rem,4vw,2.4rem)] font-bold">
+                ありがとうございました！
+              </p>
+            )}
+          </div>
         </div>
       )}
     </div>
