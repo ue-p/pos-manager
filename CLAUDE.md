@@ -28,6 +28,7 @@ Vitest / Firebase Emulator Suite / JSZip / Tailwind CSS v4（入口は `src/inde
 - `npm run test:rules` — セキュリティルールのテスト（Emulator 上）
 - `npm run test:e2e` — Playwright で当日の一連の操作と、Service Worker（オフラインで開ける・新しい版の［更新］）の確認（Emulator 上。初回は `npx playwright install chromium`）
 - `npm run lint` / `npm run typecheck` / `npm run build`
+- `npm run test:visual` — 見た目の比較（Tailwind への書き換えの前後で画面がピクセル単位で同じか。前に `VISUAL_UPDATE=1` で基準を撮る：D-31）
 - `npm run build:no-sw` — 緊急時用：端末の Service Worker を外す版をビルドする（D-28、`docs/operations.md`）
 
 作業の区切りごとに `npm run lint && npm run typecheck && npm run test` を通すこと。

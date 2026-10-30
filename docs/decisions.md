@@ -456,8 +456,22 @@ D-22（バックアップ通知を全端末共通にする）と D-23（エク�
 - **Tailwind のリセット（preflight）は読み込まない**。読み込むと、見出し・ボタン・入力欄・画像などの既定の見た目が変わり、既存の画面が崩れるため。基本の整え（`box-sizing`、`body` の余白、ボタン・入力欄の文字）は、これまでどおり `styles.css` の先頭で行う。
 - **色**：`styles.css` の色の変数（D-26）を Tailwind の色として登録した（`@theme inline`）。例：`bg-surface`、`text-text-2`、`border-border`、`text-warn`、`bg-warn-soft`、`text-d1-ink`、`bg-confirm`。変数の値はライト／ダークで切り替わるので、これらのクラスは `dark:` を付けなくても両方の表示モードに対応する。Tailwind の既定の色（`red-500` など）も使えるが、表示モードに合わせるため、原則としてこれらの色を使う。
 - **`dark:`**：アプリの表示モードの決まりに合わせた（端末がダーク かつ ライト指定でない、または `data-theme="dark"`。`src/lib/theme.ts`）。
-- **クラス名の重なり**：既存のクラス `table`・`grow` は Tailwind にも同じ名前がある。既存の見た目を変えないよう、この2つ（と、テストの文字列から拾われる `sepia`）は Tailwind に作らせない（`@source not inline(...)`）。`styles.css` に Tailwind と同じ名前のクラスを足すときは、ここにも足す。
+- **クラス名の重なり**：既存のクラス `table` は Tailwind にも同じ名前がある。既存の見た目を変えないよう、これ（と、テストの文字列から拾われる `sepia`）は Tailwind に作らせない（`@source not inline(...)`）。`styles.css` に Tailwind と同じ名前のクラスを足すときは、ここにも足す（`grow` も同じ扱いだったが、設定画面の書き換えで `styles.css` から消した）。
 - クラスを探す範囲は `src` だけ（docs・scripts の文章からクラスが作られないように）。
 - **確認したこと**：導入後のビルドで、`components` 層の中身が導入前の `styles.css` のビルドと一致すること（同じ方法で整形して比較）、Tailwind のクラスがまだ1つも出力されていないこと、層の外に規則が無いことを確かめた。つまり導入した時点では画面の見た目は変わらない。lint・typecheck・ユニット・E2E（Service Worker を含む）も合格。
 - ボタンは縦横48px以上（要件）を Tailwind で書くときも守る（例：`min-h-12 min-w-12`）。
+
+**画面ごとの書き換え（2026-10-30 開始。ユーザーの指示で設定画面から）**
+- 進め方：その画面だけで使うクラスを Tailwind のクラスに置き換え、使わなくなった `styles.css` の規則を消す。`panel`・`btn`・`choice`・`field`・`table`・`tag`・`muted`・`num`・`small`・`error`・`sub-title` など複数の画面で使う部品は、使っている画面をすべて書き換えるまで `styles.css` に残す。
+- 何度も使う組み合わせは、画面のファイルの先頭に定数でまとめる（例：設定画面の `tw.formRow`・`tw.warn`）。
+- テストが要素を探す手がかりにしていたクラス（`cashier-list`・`log-list`）は、見た目と切り離して `data-testid` にした。
+- **見た目の比較**：書き換えの前後で、同じ状態の画面をピクセル単位で比べる（`npm run test:visual`、`playwright.visual.config.ts`、`tests/visual/`）。書き換えの前に `VISUAL_UPDATE=1 npm run test:visual` で基準を撮り（`visual-baseline/`。git には入れない）、書き換えた後に `npm run test:visual` で差が 0 であることを確かめる。時計を止め、端末ID・担当者IDなど毎回変わる値は塗りつぶす（枠の大きさ・位置は比べる）。
+- **設定画面（完了）**：`settings`・`form-row`・`form-grid`・`field--num`・`input-unit`・`url`・`cashier-list`・`is-inactive`・`warn-text`・`grow`・`choice--sm`・`log-list`・`closing-grid` を Tailwind に置き換え、`styles.css` から消した。PC幅・スマホ幅 × ライト・ダーク、入力の途中（エラー・差額・名前の変更）を含む5枚で、書き換え前と差が 0 であることを確かめた（間隔を 4px 変えると失敗することも確認）。
+  - 差額のある行（レジ締め）は、以前は `.closing-grid dd`（太さ 700）が `.warn-text`（太さ 600）より強かったので、Tailwind でも文字色だけを変え、太さは 700 のままにした。
+- **レジ画面・お客さん用画面・ダッシュボード・ログイン画面（2026-10-30。ユーザーの指示で、見た目の比較テストは行わずユーザーが画面で確認する）**：`src/pages` の tsx をすべて Tailwind のクラスに書き換え、使わなくなった規則を `styles.css` から消した（約1,590行 → 約750行）。
+  - 画面どうしで共通の部品（パネル・見出し・選択ボタン・入力欄・表・メーター・長い名前の折り返し）は `src/pages/ui.ts` にまとめた。選択ボタン（選択中／通常）・商品ボタン（セット／残りわずか）・お客さん用画面のカード（セット／売り切れ）のように同じ設定がぶつかるものは、関数で片方だけを出す。
+  - 以前の CSS で後から上書きされていた設定（商品ボタンの「セット」「残りわずか」の枠・背景、`.panel-title` の直後の間隔など）は、最終的に効いていた値だけを書いた。
+  - テストが要素を探す手がかりにしているクラス（`item-btn`・`item-btn--set`・`item-count`・`cart-list`・`stock-line`・`done-change`・`summary-total`・`vr-count`・`progress`・`menu-card`・`menu-card--set`・`menu-note`・`display`・`display-lines`・`display-total`・`display-pay`・`display-change`・`display-thanks`・`display-test`・`hero-value`・`tile`・`field`）は、見た目の規則は持たない目印として要素に残した。
+  - ビルドした CSS に、`src/pages` で使っている Tailwind のクラスがすべて出力されていることを確かめた。
+- `styles.css` に残っているもの：色の変数・基本の整え、`src/components` でも使う部品（`btn` 系・`num`・`muted`・`tag`・状態バー・通知・会計一覧・グラフ・絵柄の画像と色 `tone-*`・担当者の選択）。これらは `src/components` を書き換えるときに移す。
 

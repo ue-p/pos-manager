@@ -55,14 +55,14 @@ test('学祭当日の一連の操作', async ({ browser, request }) => {
   await tap(page, '追加');
   await page.getByLabel('新しい担当者の名前').fill('Y.T');
   await tap(page, '追加');
-  await expect(page.locator('.cashier-list li')).toHaveCount(2);
+  await expect(page.getByTestId('cashier-list').locator('li')).toHaveCount(2);
   // 同じ名前は登録できない
   await page.getByLabel('新しい担当者の名前').fill('うえ');
   await expect(page.getByText('同じ名前の担当者がいます')).toBeVisible();
   await page.getByLabel('新しい担当者の名前').fill('');
   // 無効にした担当者は選択肢に出ない
   page.once('dialog', (d) => d.accept());
-  await page.locator('.cashier-list li', { has: page.locator('input[value="Y.T"]') }).getByRole('button', { name: '無効にする' }).click();
+  await page.getByTestId('cashier-list').locator('li', { has: page.locator('input[value="Y.T"]') }).getByRole('button', { name: '無効にする' }).click();
   await page.getByRole('link', { name: 'レジ' }).click();
   const picker = page.getByLabel('担当', { exact: true });
   await expect(picker.locator('option')).toHaveText(['⚠ 選んでください', 'うえ']);
@@ -149,7 +149,7 @@ test('学祭当日の一連の操作', async ({ browser, request }) => {
   await page.getByRole('link', { name: '設定・出力' }).click();
   await page.getByPlaceholder(/自由メモ/).fill('POP変更, "セット推し"');
   await tap(page, '記録');
-  await expect(page.locator('.log-list')).toContainText('セット推し');
+  await expect(page.getByTestId('log-list')).toContainText('セット推し');
   const downloadPromise = page.waitForEvent('download');
   await tap(page, 'CSVをダウンロード（ZIP）');
   const download = await downloadPromise;
@@ -168,7 +168,7 @@ test('学祭当日の一連の操作', async ({ browser, request }) => {
   await expect(page.locator('#export')).toContainText('最後のエクスポート（全端末）');
   await expect(page.locator('#export')).toContainText('レジ1（1分以内）');
   await expect(page.locator('.pill', { hasText: 'CSV保存' })).toHaveText('CSV保存 1分以内');
-  await expect(page.locator('.log-list')).not.toContainText('CSVをエクスポートした');
+  await expect(page.getByTestId('log-list')).not.toContainText('CSVをエクスポートした');
   await expect.poll(async () => (await serverLogs(request)).filter((l) => l.log_type === 'csv_export')).toEqual([
     { log_type: 'csv_export', is_test: false, note: `CSVをエクスポートした（${download.suggestedFilename()}）` },
   ]);
@@ -180,7 +180,7 @@ test('学祭当日の一連の操作', async ({ browser, request }) => {
   page.once('dialog', (d) => d.accept());
   await tap(page, 'テストモードにする');
   await expect(page.locator('.test-banner')).toBeVisible();
-  const autoOn = page.locator('.log-list li', { hasText: 'テストモードをオンにした' });
+  const autoOn = page.getByTestId('log-list').locator('li', { hasText: 'テストモードをオンにした' });
   await expect(autoOn).toContainText('自動');
   await expect(autoOn.locator('.tag--test')).toHaveCount(0); // 自動記録は is_test=false
   await expect(page.locator('.pill', { hasText: /未送信 [1-9]件/ })).toBeVisible();
@@ -190,7 +190,7 @@ test('学祭当日の一連の操作', async ({ browser, request }) => {
   const offlineDl = page.waitForEvent('download');
   await tap(page, 'CSVをダウンロード（ZIP）');
   const offlineName = (await offlineDl).suggestedFilename();
-  await expect(page.locator('.log-list')).not.toContainText('CSVをエクスポートした');
+  await expect(page.getByTestId('log-list')).not.toContainText('CSVをエクスポートした');
   // オフライン中はサーバーにまだ届いていない
   expect((await serverLogs(request)).filter((l) => l.log_type === 'csv_export')).toHaveLength(1);
   await staff.setOffline(false);
@@ -207,8 +207,8 @@ test('学祭当日の一連の操作', async ({ browser, request }) => {
   await page2.getByLabel('パスワード').fill('password123');
   await page2.getByRole('button', { name: 'ログイン', exact: true }).click();
   await expect(page2.locator('.test-banner')).toBeVisible({ timeout: 15_000 });
-  await expect(page2.locator('.log-list')).toContainText('テストモードをオンにした');
-  await expect(page2.locator('.log-list')).not.toContainText('CSVをエクスポートした');
+  await expect(page2.getByTestId('log-list')).toContainText('テストモードをオンにした');
+  await expect(page2.getByTestId('log-list')).not.toContainText('CSVをエクスポートした');
   // この端末は一度もエクスポートしていないが、「CSV保存」は全端末共通の値なので警告色にならない
   await expect(page2.locator('.pill', { hasText: 'CSV保存' })).not.toHaveClass(/pill--warn/);
   await expect(page2.locator('.pill', { hasText: 'CSV保存' })).toHaveText('CSV保存 1分以内');
@@ -226,7 +226,7 @@ test('学祭当日の一連の操作', async ({ browser, request }) => {
   await page.getByRole('link', { name: '設定・出力' }).click();
   await tap(page, 'テストモードを終了する');
   await expect(page.locator('.test-banner')).toHaveCount(0);
-  await expect(page.locator('.log-list')).toContainText('テストモードをオフにした');
+  await expect(page.getByTestId('log-list')).toContainText('テストモードをオフにした');
 
   // CSV：log_type 列が出て、自動記録は is_test=false
   const download2Promise = page.waitForEvent('download');

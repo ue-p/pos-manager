@@ -14,9 +14,10 @@
 
 /* クラスを探すのは src だけ（docs・scripts の文章からクラスが作られないように） */
 @source './';
-/* 既存のクラス名と同じ名前のユーティリティは作らない（既存の .table・.grow の見た目を変えないため）。
-   sepia はテストの文字列から拾われてしまうので除く。styles.css に Tailwind と同じ名前のクラスを足したら、ここにも足す */
-@source not inline('table grow sepia');
+/* styles.css のクラスと同じ名前のユーティリティは作らない（同じ要素に両方の意味が付かないように）。
+   table（以前は styles.css の表のクラス。今は <table> のタグ名から拾われる）と、テストの文字列から拾われる sepia を除く。
+   styles.css に Tailwind と同じ名前のクラスを足したら、ここにも足す */
+@source not inline('table sepia');
 
 /* styles.css の色の変数を Tailwind の色にする。例：bg-surface / text-text-2 / border-border / text-warn / bg-d1-soft */
 @theme inline {

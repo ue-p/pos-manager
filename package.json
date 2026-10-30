@@ -15,6 +15,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "format": "prettier --write .",
+    "test:visual": "firebase emulators:exec --only auth,firestore --project demo-gakusai-pos \"playwright test -c playwright.visual.config.ts\"",
     "test:e2e": "firebase emulators:exec --only auth,firestore --project demo-gakusai-pos \"playwright test && playwright test -c playwright.pwa.config.ts\""
   },
   "dependencies": {

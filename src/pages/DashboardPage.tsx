@@ -16,6 +16,7 @@ import { remainingStock } from '../domain/stock';
 import { todayLocalDate } from '../domain/time';
 import { DESIGNS, GROUP_TYPE_LABELS, ITEMS } from '../domain/types';
 import { percent, yen } from '../lib/format';
+import { meter, meterFill, panel, panelTitle, small, subTitle, table, tableScroll, td, th } from './ui';
 
 export function DashboardPage() {
   const { transactions, vrVisits, settings, itemLabels } = usePos();
@@ -39,40 +40,40 @@ export function DashboardPage() {
   const sheets = s.soldByDesign.design_1 + s.soldByDesign.design_2 + s.soldByDesign.design_3;
 
   return (
-    <div className="dashboard">
-      <div className="dash-filter">
+    <div className="grid gap-4">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <span>期間</span>
-        <div className="seg">
-          <button className={date === null ? 'on' : ''} onClick={() => setDate(null)}>
+        <div className="flex flex-wrap gap-1 rounded-xl bg-surface-2 p-1">
+          <button className={segButton(date === null)} onClick={() => setDate(null)}>
             全期間
           </button>
           {dates.map((d) => (
-            <button key={d} className={date === d ? 'on' : ''} onClick={() => setDate(d)}>
+            <button key={d} className={segButton(date === d)} onClick={() => setDate(d)}>
               {d.slice(5).replace('-', '/')}
               {d === today && '（今日）'}
             </button>
           ))}
         </div>
-        <span className="muted small">取消・テストモードの記録は含みません</span>
+        <span className={`muted ${small}`}>取消・テストモードの記録は含みません</span>
       </div>
 
-      <section className="panel hero">
+      <section className={`${panel} grid grid-cols-[auto_minmax(0,1fr)] items-end gap-x-10 gap-y-4 max-[900px]:grid-cols-[minmax(0,1fr)]`}>
         <div>
-          <div className="hero-label">売上{date ? `（${date.slice(5).replace('-', '/')}）` : '（全期間）'}</div>
-          <div className="hero-value">{yen(s.sales)}</div>
+          <div className={heroLabel}>売上{date ? `（${date.slice(5).replace('-', '/')}）` : '（全期間）'}</div>
+          <div className="hero-value text-[clamp(2.6rem,7vw,3.6rem)] leading-[1.1] font-extrabold">{yen(s.sales)}</div>
         </div>
-        <div className="hero-target">
-          <div className="hero-label">
+        <div>
+          <div className={heroLabel}>
             累計 {yen(cumulative)} ／ 目標 {yen(settings.target_amount)}
           </div>
-          <div className="hero-sub">{toTarget === 0 ? '黒字達成！' : `黒字まであと ${yen(toTarget)}`}</div>
-          <div className="meter">
-            <div className="meter-fill" style={{ width: `${Math.min(100, (cumulative / settings.target_amount) * 100)}%` }} />
+          <div className="mt-0.5 mb-2 text-[1.3rem] font-bold">{toTarget === 0 ? '黒字達成！' : `黒字まであと ${yen(toTarget)}`}</div>
+          <div className={meter}>
+            <div className={meterFill} style={{ width: `${Math.min(100, (cumulative / settings.target_amount) * 100)}%` }} />
           </div>
         </div>
       </section>
 
-      <section className="tiles">
+      <section className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
         <Tile label="会計数（組）" value={`${s.transactionCount}`} />
         <Tile label="販売枚数" value={`${sheets}枚`} />
         <Tile label="客単価" value={s.averageSpend === null ? '—' : yen(s.averageSpend)} />
@@ -85,9 +86,9 @@ export function DashboardPage() {
         />
       </section>
 
-      <div className="dash-grid">
-        <section className="panel">
-          <h2 className="panel-title">絵柄別の販売枚数</h2>
+      <div className="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
+        <section className={panel}>
+          <h2 className={panelTitle()}>絵柄別の販売枚数</h2>
           <HBarChart
             ariaLabel="絵柄別の販売枚数"
             data={DESIGNS.map((d) => ({
@@ -106,7 +107,7 @@ export function DashboardPage() {
               ),
             }))}
           />
-          <h3 className="sub-title">商品別の販売数</h3>
+          <h3 className={subTitle}>商品別の販売数</h3>
           <HBarChart
             ariaLabel="商品別の販売数"
             data={ITEMS.map((i) => ({
@@ -118,8 +119,8 @@ export function DashboardPage() {
           />
         </section>
 
-        <section className="panel">
-          <h2 className="panel-title">時間帯別の売上</h2>
+        <section className={panel}>
+          <h2 className={panelTitle()}>時間帯別の売上</h2>
           {hourly.length === 0 ? (
             <p className="muted">データがありません</p>
           ) : (
@@ -146,26 +147,26 @@ export function DashboardPage() {
                   ),
                 }))}
               />
-              <details className="table-view">
-                <summary>表で見る</summary>
-                <table className="table">
+              <details>
+                <summary className="flex min-h-12 cursor-pointer items-center text-text-2">表で見る</summary>
+                <table className={table}>
                   <thead>
                     <tr>
-                      <th>時間帯</th>
-                      <th>売上</th>
-                      <th>会計数</th>
-                      <th>VR体験者</th>
-                      <th>購入率</th>
+                      <th className={th(true)}>時間帯</th>
+                      <th className={th(false)}>売上</th>
+                      <th className={th(false)}>会計数</th>
+                      <th className={th(false)}>VR体験者</th>
+                      <th className={th(false)}>購入率</th>
                     </tr>
                   </thead>
                   <tbody>
                     {hourly.map((h) => (
                       <tr key={h.hour}>
-                        <td>{h.hour}時台</td>
-                        <td className="num">{yen(h.sales)}</td>
-                        <td className="num">{h.transactions}</td>
-                        <td className="num">{h.vrVisits}</td>
-                        <td className="num">{percent(h.vrVisits === 0 ? null : h.transactions / h.vrVisits)}</td>
+                        <td className={td()}>{h.hour}時台</td>
+                        <td className={td(true)}>{yen(h.sales)}</td>
+                        <td className={td(true)}>{h.transactions}</td>
+                        <td className={td(true)}>{h.vrVisits}</td>
+                        <td className={td(true)}>{percent(h.vrVisits === 0 ? null : h.transactions / h.vrVisits)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -175,29 +176,29 @@ export function DashboardPage() {
           )}
         </section>
 
-        <section className="panel dash-wide">
-          <h2 className="panel-title">客層別</h2>
-          <div className="table-scroll">
-            <table className="table">
+        <section className={`${panel} col-span-full`}>
+          <h2 className={panelTitle()}>客層別</h2>
+          <div className={tableScroll}>
+            <table className={table}>
               <thead>
                 <tr>
-                  <th>客層</th>
-                  <th>組数</th>
-                  <th>人数</th>
-                  <th>売上</th>
-                  <th>客単価</th>
-                  <th>1組あたり枚数</th>
+                  <th className={th(true)}>客層</th>
+                  <th className={th(false)}>組数</th>
+                  <th className={th(false)}>人数</th>
+                  <th className={th(false)}>売上</th>
+                  <th className={th(false)}>客単価</th>
+                  <th className={th(false)}>1組あたり枚数</th>
                 </tr>
               </thead>
               <tbody>
                 {groups.map((g) => (
                   <tr key={g.group_type}>
-                    <td>{GROUP_TYPE_LABELS[g.group_type]}</td>
-                    <td className="num">{g.transactions}</td>
-                    <td className="num">{g.people}</td>
-                    <td className="num">{yen(g.sales)}</td>
-                    <td className="num">{g.averageSpend === null ? '—' : yen(g.averageSpend)}</td>
-                    <td className="num">{g.averageSheets === null ? '—' : g.averageSheets.toFixed(1)}</td>
+                    <td className={td()}>{GROUP_TYPE_LABELS[g.group_type]}</td>
+                    <td className={td(true)}>{g.transactions}</td>
+                    <td className={td(true)}>{g.people}</td>
+                    <td className={td(true)}>{yen(g.sales)}</td>
+                    <td className={td(true)}>{g.averageSpend === null ? '—' : yen(g.averageSpend)}</td>
+                    <td className={td(true)}>{g.averageSheets === null ? '—' : g.averageSheets.toFixed(1)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -209,12 +210,20 @@ export function DashboardPage() {
   );
 }
 
+const heroLabel = 'text-[0.9rem] text-text-2';
+
+/** 期間の切り替えボタン（選んでいるものは白く浮かせる） */
+function segButton(on: boolean): string {
+  return `min-h-11 cursor-pointer rounded-[9px] border-0 px-3.5 py-0 font-semibold ${on ? 'bg-surface text-text shadow-(--shadow)' : 'bg-transparent text-text-2'}`;
+}
+
+/** 数字のタイル。tile はテストの目印 */
 function Tile({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="panel tile">
-      <div className="tile-label">{label}</div>
-      <div className="tile-value">{value}</div>
-      {hint && <div className="tile-hint">{hint}</div>}
+    <div className={`tile ${panel}`}>
+      <div className="text-[0.85rem] text-text-2">{label}</div>
+      <div className="text-[1.7rem] font-extrabold">{value}</div>
+      {hint && <div className="text-[0.75rem] text-muted">{hint}</div>}
     </div>
   );
 }
