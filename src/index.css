@@ -1,0 +1,66 @@
+/* スタイルの入口（D-31）。既存の styles.css をそのまま読み込み、Tailwind CSS（v4）のユーティリティを足す。
+   - 層の順番：theme（Tailwind の変数）< components（既存の styles.css）< utilities（Tailwind のクラス）。
+     既存の見た目はそのままで、要素に Tailwind のクラスを足すと既存のクラスより優先される（置き換えていける）
+   - Tailwind のリセット（preflight）は読み込まない。読み込むと見出し・ボタン・画像などの既定の見た目が変わり、
+     既存の画面が崩れるため。基本の整え（box-sizing・body の余白など）は styles.css の先頭で行っている
+   - 使った分のクラスと変数だけが出力される。まだ Tailwind のクラスを使っていないので、今の画面の CSS は styles.css と同じ
+   - 色は styles.css の変数（--surface など）を Tailwind の色として使えるようにする（下の @theme）。
+     ライト／ダークの切り替えは変数側で行われるので、`bg-surface` などは dark: を付けなくても両方に対応する */
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import './styles.css' layer(components);
+@import 'tailwindcss/utilities.css' layer(utilities) source(none);
+
+/* クラスを探すのは src だけ（docs・scripts の文章からクラスが作られないように） */
+@source './';
+/* styles.css のクラスと同じ名前のユーティリティは作らない（同じ要素に両方の意味が付かないように）。
+   table（以前は styles.css の表のクラス。今は <table> のタグ名から拾われる）と、テストの文字列から拾われる sepia を除く。
+   styles.css に Tailwind と同じ名前のクラスを足したら、ここにも足す */
+@source not inline('table sepia');
+
+/* styles.css の色の変数を Tailwind の色にする。例：bg-surface / text-text-2 / border-border / text-warn / bg-d1-soft */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-2: var(--text-2);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+  --color-test: var(--test);
+  --color-confirm: var(--confirm);
+  --color-confirm-ink: var(--confirm-ink);
+  --color-undo: var(--undo);
+  --color-undo-ink: var(--undo-ink);
+  --color-d1: var(--d1);
+  --color-d1-ink: var(--d1-ink);
+  --color-d1-soft: var(--d1-soft);
+  --color-d2: var(--d2);
+  --color-d2-ink: var(--d2-ink);
+  --color-d2-soft: var(--d2-soft);
+  --color-d3: var(--d3);
+  --color-d3-ink: var(--d3-ink);
+  --color-d3-soft: var(--d3-soft);
+}
+
+/* dark: はアプリの表示モードに合わせる（styles.css と同じ条件。src/lib/theme.ts の data-theme が端末の設定より優先） */
+@custom-variant dark {
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme='light']), :root:not([data-theme='light']) *) {
+      @slot;
+    }
+  }
+  &:where([data-theme='dark'], [data-theme='dark'] *) {
+    @slot;
+  }
+}

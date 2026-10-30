@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { auth, SHARED_ACCOUNT_EMAIL, usingEmulator } from '../lib/firebase';
+import { error as errorText, field } from './ui';
 
 // F-10：部員共通アカウントでログイン（新規登録画面は作らない。D-16）
 export function LoginPage() {
@@ -45,15 +46,15 @@ export function LoginPage() {
   };
 
   return (
-    <div className="login">
-      <form className="card login-card" onSubmit={submit}>
-        <h1>学祭シールPOS</h1>
+    <div className="grid min-h-dvh place-items-center p-4">
+      <form className="grid w-[min(420px,100%)] gap-3.5 rounded-2xl border border-border bg-surface p-6" onSubmit={submit}>
+        <h1 className="text-[1.5rem]">学祭シールPOS</h1>
         <p className="muted">部員共通アカウントでログインしてください</p>
-        <label className="field">
+        <label className={field}>
           <span>メールアドレス</span>
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" required />
         </label>
-        <label className="field">
+        <label className={field}>
           <span>パスワード</span>
           <input
             type="password"
@@ -64,12 +65,12 @@ export function LoginPage() {
             autoFocus
           />
         </label>
-        {error && <p className="error">{error}</p>}
+        {error && <p className={errorText}>{error}</p>}
         <button className="btn btn--primary btn--lg" disabled={busy}>
           ログイン
         </button>
         {usingEmulator && (
-          <div className="dev-box">
+          <div className="grid gap-2 border-t border-dashed border-border pt-3 text-[0.85rem] text-text-2">
             <p>開発モード（Emulator 接続中）。初回はアカウントを作ってください（パスワード6文字以上）。</p>
             <button type="button" className="btn" disabled={busy || password.length < 6} onClick={createDevAccount}>
               このメールとパスワードで開発用アカウントを作成

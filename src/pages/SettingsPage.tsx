@@ -36,10 +36,39 @@ import { useNow } from '../lib/useNow';
 import { APP_VERSION } from '../lib/pwa';
 import { getStoredThemePref, setThemePref, THEME_LABELS, THEME_PREFS, type ThemePref } from '../lib/theme';
 import { newUuid } from '../lib/uuid';
+import {
+  choice,
+  choiceRow,
+  error as errorText,
+  field as fieldClass,
+  panel,
+  panelTitle,
+  small as smallText,
+  subTitle,
+  table,
+  tableScroll,
+  td,
+  th,
+} from './ui';
+
+/**
+ * この画面のスタイルは Tailwind で書く（D-31）。この画面で何度も使う組み合わせだけ、ここにまとめる。
+ * 他の画面と共通の部品（パネル・選択ボタン・入力欄・表など）は ./ui.ts、btn・num・muted・tag は styles.css
+ */
+const tw = {
+  formRow: 'my-2.5 flex flex-wrap items-end gap-2.5',
+  formGrid: 'grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-2.5',
+  /** 入力欄と単位（円・枚・セット）を横に並べる */
+  inputUnit: 'inline-flex items-center gap-1.5',
+  unitInput: 'w-[120px] text-right',
+  warn: 'font-semibold text-warn',
+  /** 行の残りの幅いっぱいに広がる入力欄 */
+  grow: 'min-w-0 flex-1',
+};
 
 export function SettingsPage() {
   return (
-    <div className="settings">
+    <div className="mx-auto grid max-w-[920px] gap-4">
       <DeviceSection />
       <CashierSection />
       <ExportSection />
@@ -49,8 +78,8 @@ export function SettingsPage() {
       <ItemLabelSection />
       <ActionLogSection />
       <ClosingSection />
-      <section className="panel">
-        <h2 className="panel-title">ログアウト</h2>
+      <section className={panel}>
+        <h2 className={panelTitle()}>ログアウト</h2>
         <button className="btn" onClick={() => logout()}>
           この端末からログアウト
         </button>
@@ -65,10 +94,10 @@ function DeviceSection() {
   const [themePref, setThemePrefState] = useState<ThemePref>(getStoredThemePref);
   const displayUrl = `${window.location.origin}/display?reg=${registerId}`;
   return (
-    <section className="panel">
-      <h2 className="panel-title">この端末</h2>
-      <div className="form-row">
-        <label className="field">
+    <section className={panel}>
+      <h2 className={panelTitle()}>この端末</h2>
+      <div className={tw.formRow}>
+        <label className={fieldClass}>
           <span>レジ番号</span>
           <select value={registerId} onChange={(e) => setRegisterId(e.target.value)}>
             {REGISTER_IDS.map((r) => (
@@ -78,11 +107,11 @@ function DeviceSection() {
             ))}
           </select>
         </label>
-        <div className="field">
+        <div className={fieldClass}>
           <span>端末ID</span>
           <code>{deviceId}</code>
         </div>
-        <label className="field">
+        <label className={fieldClass}>
           <span>表示モード（この端末だけ）</span>
           <select
             value={themePref}
@@ -99,15 +128,15 @@ function DeviceSection() {
             ))}
           </select>
         </label>
-        <div className="field">
+        <div className={fieldClass}>
           <span>アプリの版</span>
           <code data-testid="app-version">{APP_VERSION}</code>
         </div>
       </div>
-      <div className="field">
+      <div className={fieldClass}>
         <span>お客さん用画面のURL（別端末ではこのURLを開く。ログイン不要。末尾に &amp;theme=dark / &amp;theme=light を付けると表示モードを固定できる）</span>
-        <div className="form-row">
-          <code className="url">{displayUrl}</code>
+        <div className={tw.formRow}>
+          <code className="break-all p-2.5">{displayUrl}</code>
           <button className="btn" onClick={() => window.open(`/display?reg=${registerId}`, `pos-display-${registerId}`)}>
             この端末で開く
           </button>
@@ -161,15 +190,15 @@ function CashierSection() {
   };
 
   return (
-    <section className="panel">
-      <h2 className="panel-title">担当者</h2>
-      <p className="warn-text small">
+    <section className={panel}>
+      <h2 className={panelTitle()}>担当者</h2>
+      <p className={`${smallText} ${tw.warn}`}>
         名前は呼び名かイニシャルで登録してください（例：「うえ」「Y.U」）。個人情報は扱わないため、本名は登録しないでください。
         CSV には名前は出ず、担当者のID（cs_xxxx）だけが記録されます。
       </p>
-      <div className="form-row">
+      <div className={tw.formRow}>
         <input
-          className="grow"
+          className={tw.grow}
           aria-label="新しい担当者の名前"
           placeholder="呼び名・イニシャル（20文字以内）"
           maxLength={CASHIER_NAME_MAX}
@@ -181,14 +210,15 @@ function CashierSection() {
           追加
         </button>
       </div>
-      {addError && <p className="error small">{addError}</p>}
+      {addError && <p className={`${errorText} ${smallText}`}>{addError}</p>}
       {sorted.length > 0 && (
-        <ul className="cashier-list">
+        <ul className="mt-3 mb-0 grid list-none gap-2 p-0" data-testid="cashier-list">
           {sorted.map((c) => {
             const draft = drafts[c.cashier_id];
             return (
-              <li key={c.cashier_id} className={c.active ? '' : 'is-inactive'}>
+              <li key={c.cashier_id} className="flex flex-wrap items-center gap-2">
                 <input
+                  className={`min-w-0 flex-[1_1_160px] ${c.active ? '' : 'text-muted line-through'}`}
                   aria-label={`${c.name} の名前`}
                   maxLength={CASHIER_NAME_MAX}
                   value={draft ?? c.name}
@@ -256,16 +286,16 @@ function ExportSection() {
   };
 
   return (
-    <section className="panel" id="export">
-      <h2 className="panel-title">CSVエクスポート（バックアップ）</h2>
-      <p className={warn ? 'warn-text' : 'muted'}>
+    <section className={panel} id="export">
+      <h2 className={panelTitle()}>CSVエクスポート（バックアップ）</h2>
+      <p className={warn ? tw.warn : 'muted'}>
         {lastLog === undefined || elapsedMin === null
           ? 'まだどの端末もエクスポートしていません'
           : `最後のエクスポート（全端末）：${hhmm(lastLog.timestamp)} ${registerLabel(lastLog.register_id)}（${formatAgo(elapsedMin)}）`}
         {warn && ` ― ${BACKUP_WARN_MINUTES}分ごとに保存してください`}
       </p>
       {(!online || pendingCount > 0) && (
-        <p className="warn-text">
+        <p className={tw.warn}>
           {!online ? 'オフライン中です。' : `未送信が ${pendingCount}件あります。`}
           エクスポートは「オンライン」かつ「未送信 0件」になってから行ってください。
         </p>
@@ -273,7 +303,7 @@ function ExportSection() {
       <button className="btn btn--primary btn--lg" disabled={busy} onClick={doExport}>
         CSVをダウンロード（ZIP）
       </button>
-      <p className="muted small">
+      <p className={`muted ${smallText}`}>
         中身：sales_lines.csv / transactions.csv / vr_visits.csv / action_logs.csv / register_closings.csv（UTF-8・取消/テスト行も含む）。
         会計 {transactions.length}件・VR {vrVisits.length}件。
         {pendingCount > 0 && ` この端末の未送信 ${pendingCount}件も含みます。オフライン中の他端末の分は含まれません。`}
@@ -303,15 +333,15 @@ function TestModeSection() {
     toast(`${log.note}（施策ログに記録）`);
   };
   return (
-    <section className="panel">
-      <h2 className="panel-title">テストモード</h2>
+    <section className={panel}>
+      <h2 className={panelTitle()}>テストモード</h2>
       <p>
-        現在：<strong className={settings.test_mode ? 'warn-text' : ''}>{settings.test_mode ? 'オン（練習中）' : 'オフ（本番）'}</strong>
+        現在：<strong className={settings.test_mode ? tw.warn : ''}>{settings.test_mode ? 'オン（練習中）' : 'オフ（本番）'}</strong>
       </p>
       <button className={`btn btn--lg ${settings.test_mode ? 'btn--primary' : ''}`} onClick={toggle}>
         {settings.test_mode ? 'テストモードを終了する' : 'テストモードにする'}
       </button>
-      <p className="muted small">全端末で共有されます。開店前に、すべての端末で上部の帯が消えたことを確認してください。</p>
+      <p className={`muted ${smallText}`}>全端末で共有されます。開店前に、すべての端末で上部の帯が消えたことを確認してください。</p>
     </section>
   );
 }
@@ -358,10 +388,11 @@ function PriceStockSection() {
   };
 
   const field = (key: string, label: string, unit: string) => (
-    <label className="field field--num" key={key}>
+    <label className={fieldClass} key={key}>
       <span>{label}</span>
-      <span className="input-unit">
+      <span className={tw.inputUnit}>
         <input
+          className={tw.unitInput}
           inputMode="numeric"
           value={form[key]}
           onChange={(e) => {
@@ -376,20 +407,20 @@ function PriceStockSection() {
   );
 
   return (
-    <section className="panel">
-      <h2 className="panel-title">価格・在庫</h2>
-      {!settingsStored && <p className="warn-text">まだ設定が保存されていません（既定値で動作中）。確認して保存してください。</p>}
-      <h3 className="sub-title">価格</h3>
-      <div className="form-grid">{ITEMS.map((i) => field(`price_${i}`, itemLabels[i], '円'))}</div>
-      <h3 className="sub-title">初期在庫</h3>
-      <div className="form-grid">{DESIGNS.map((d) => field(`stock_${d}`, itemLabels[d], '枚'))}</div>
-      <h3 className="sub-title">その他</h3>
-      <div className="form-grid">
+    <section className={panel}>
+      <h2 className={panelTitle()}>価格・在庫</h2>
+      {!settingsStored && <p className={tw.warn}>まだ設定が保存されていません（既定値で動作中）。確認して保存してください。</p>}
+      <h3 className={subTitle}>価格</h3>
+      <div className={tw.formGrid}>{ITEMS.map((i) => field(`price_${i}`, itemLabels[i], '円'))}</div>
+      <h3 className={subTitle}>初期在庫</h3>
+      <div className={tw.formGrid}>{DESIGNS.map((d) => field(`stock_${d}`, itemLabels[d], '枚'))}</div>
+      <h3 className={subTitle}>その他</h3>
+      <div className={tw.formGrid}>
         {field('target_amount', '回収目標額（制作費）', '円')}
         {field('low_stock_threshold', '「残りわずか」の基準', '枚以下')}
         {field('float_amount', '釣銭準備金（1レジあたり）', '円')}
       </div>
-      <div className="form-row">
+      <div className={tw.formRow}>
         <button className="btn btn--primary" disabled={!dirty || invalid} onClick={save}>
           保存
         </button>
@@ -403,7 +434,7 @@ function PriceStockSection() {
         >
           元に戻す
         </button>
-        {invalid && <span className="error">0以上の整数で入力してください</span>}
+        {invalid && <span className={errorText}>0以上の整数で入力してください</span>}
       </div>
     </section>
   );
@@ -441,17 +472,18 @@ function SetLimitSection() {
   };
 
   return (
-    <section className="panel">
-      <h2 className="panel-title">セットの販売上限</h2>
+    <section className={panel}>
+      <h2 className={panelTitle()}>セットの販売上限</h2>
       <p>
         上限 <strong className="num">{current}</strong>セット ／ 販売済み <strong className="num">{sold}</strong>セット ／ 残り{' '}
         <strong className="num">{remainingSets(current, transactions)}</strong>セット
       </p>
-      <div className="form-row">
-        <label className="field field--num">
+      <div className={tw.formRow}>
+        <label className={fieldClass}>
           <span>新しい上限（0〜{SET_LIMIT_MAX}）</span>
-          <span className="input-unit">
+          <span className={tw.inputUnit}>
             <input
+              className={tw.unitInput}
               inputMode="numeric"
               aria-label="セットの販売上限"
               value={input}
@@ -478,11 +510,11 @@ function SetLimitSection() {
           元に戻す
         </button>
       </div>
-      {next === null && <p className="error small">0〜{SET_LIMIT_MAX}の整数で入力してください</p>}
+      {next === null && <p className={`${errorText} ${smallText}`}>0〜{SET_LIMIT_MAX}の整数で入力してください</p>}
       {next !== null && next !== current && next < sold && (
-        <p className="warn-text small">販売済み（{sold}セット）より少ないため、保存すると残りは0セットになります。</p>
+        <p className={`${smallText} ${tw.warn}`}>販売済み（{sold}セット）より少ないため、保存すると残りは0セットになります。</p>
       )}
-      <p className="muted small">
+      <p className={`muted ${smallText}`}>
         全端末で共有されます。取消・テストモードの会計は数えません。{SET_LIMIT_MAX}セットで実質制限なしです。
         変更すると施策ログに自動で記録されます（分析用）。
       </p>
@@ -515,15 +547,15 @@ function ItemLabelSection() {
   };
 
   return (
-    <section className="panel">
-      <h2 className="panel-title">シールの表示名</h2>
-      <p className="muted small">
+    <section className={panel}>
+      <h2 className={panelTitle()}>シールの表示名</h2>
+      <p className={`muted ${smallText}`}>
         レジ画面・お客さん用画面・ダッシュボードに出す名前です（{ITEM_LABEL_MAX}文字まで）。空欄にすると「案1〜3」に戻ります。
         CSV の値（design_1〜design_3）は変わりません。
       </p>
-      <div className="form-grid">
+      <div className={tw.formGrid}>
         {DESIGNS.map((d) => (
-          <label className="field" key={d}>
+          <label className={fieldClass} key={d}>
             <span>{ITEM_LABELS[d]}の表示名</span>
             <input
               value={form[d]}
@@ -535,11 +567,11 @@ function ItemLabelSection() {
                 setDirty(true);
               }}
             />
-            {errors[d] && <span className="error small">{errors[d]}</span>}
+            {errors[d] && <span className={`${errorText} ${smallText}`}>{errors[d]}</span>}
           </label>
         ))}
       </div>
-      <div className="form-row">
+      <div className={tw.formRow}>
         <button className="btn btn--primary" disabled={!dirty || invalid} onClick={save}>
           保存
         </button>
@@ -583,18 +615,18 @@ function ActionLogSection() {
   const recent = recentLogsForList(actionLogs);
 
   return (
-    <section className="panel">
-      <h2 className="panel-title">施策ログ</h2>
-      <div className="choice-row">
+    <section className={panel}>
+      <h2 className={panelTitle()}>施策ログ</h2>
+      <div className={choiceRow}>
         {PRESETS.map((p) => (
-          <button key={p} className="choice choice--sm" onClick={() => record(p)}>
+          <button key={p} className={choice({ small: true })} onClick={() => record(p)}>
             {p}
           </button>
         ))}
       </div>
-      <div className="form-row">
+      <div className={tw.formRow}>
         <input
-          className="grow"
+          className={tw.grow}
           placeholder="自由メモ（例：セット推しのPOPに変更）"
           value={note}
           onChange={(e) => setNote(e.target.value)}
@@ -605,10 +637,10 @@ function ActionLogSection() {
         </button>
       </div>
       {recent.length > 0 && (
-        <ul className="log-list">
+        <ul className="mt-2 mb-0 grid list-none gap-1 p-0" data-testid="log-list">
           {recent.map((l) => (
             <li key={l.log_id}>
-              <span className="num muted">
+              <span className="num muted mr-2.5">
                 {l.timestamp.slice(5, 10).replace('-', '/')} {hhmm(l.timestamp)}
               </span>
               {l.note}
@@ -656,14 +688,14 @@ function ClosingSection() {
   const past = [...registerClosings].sort((a, b) => compareByTime(b, a)).slice(0, 10);
 
   return (
-    <section className="panel">
-      <h2 className="panel-title">レジ締め</h2>
-      <div className="form-row">
-        <label className="field">
+    <section className={panel}>
+      <h2 className={panelTitle()}>レジ締め</h2>
+      <div className={tw.formRow}>
+        <label className={fieldClass}>
           <span>営業日</span>
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </label>
-        <label className="field">
+        <label className={fieldClass}>
           <span>レジ</span>
           <select value={reg} onChange={(e) => setReg(e.target.value)}>
             {REGISTER_IDS.map((r) => (
@@ -673,50 +705,51 @@ function ClosingSection() {
             ))}
           </select>
         </label>
-        <label className="field field--num">
+        <label className={fieldClass}>
           <span>数えた現金の総額</span>
-          <span className="input-unit">
-            <input inputMode="numeric" value={counted} onChange={(e) => setCounted(e.target.value.trim())} />円
+          <span className={tw.inputUnit}>
+            <input className={tw.unitInput} inputMode="numeric" value={counted} onChange={(e) => setCounted(e.target.value.trim())} />円
           </span>
         </label>
       </div>
-      <dl className="closing-grid">
-        <dt>システム上の現金売上</dt>
-        <dd className="num">{yen(system)}</dd>
-        <dt>釣銭準備金</dt>
-        <dd className="num">{yen(settings.float_amount)}</dd>
-        <dt>差額（数えた現金 − 準備金 − 売上）</dt>
-        <dd className={`num ${diff !== null && diff !== 0 ? 'warn-text' : ''}`}>
+      <dl className="mt-2 mb-3 grid grid-cols-[auto_auto] justify-start gap-x-6 gap-y-1">
+        <dt className="text-text-2">システム上の現金売上</dt>
+        <dd className="num m-0 text-right font-bold">{yen(system)}</dd>
+        <dt className="text-text-2">釣銭準備金</dt>
+        <dd className="num m-0 text-right font-bold">{yen(settings.float_amount)}</dd>
+        <dt className="text-text-2">差額（数えた現金 − 準備金 − 売上）</dt>
+        {/* 差額のある行は文字色だけ変える（太さは他の行と同じ 700） */}
+        <dd className={`num m-0 text-right font-bold ${diff !== null && diff !== 0 ? 'text-warn' : ''}`}>
           {diff === null ? '—' : `${diff >= 0 ? '+' : ''}${diff.toLocaleString()}円`}
         </dd>
       </dl>
-      {currentCashier === null && <p className="warn-text">レジ締めの前に、画面上部の「担当」で担当者を選んでください。</p>}
+      {currentCashier === null && <p className={tw.warn}>レジ締めの前に、画面上部の「担当」で担当者を選んでください。</p>}
       <button className="btn btn--primary" disabled={countedNum === null || currentCashier === null} onClick={save}>
         レジ締めを記録
       </button>
       {past.length > 0 && (
-        <div className="table-scroll">
-          <table className="table">
+        <div className={tableScroll}>
+          <table className={table}>
             <thead>
               <tr>
-                <th>営業日</th>
-                <th>レジ</th>
-                <th>売上</th>
-                <th>数えた現金</th>
-                <th>差額</th>
+                <th className={th(true)}>営業日</th>
+                <th className={th(false)}>レジ</th>
+                <th className={th(false)}>売上</th>
+                <th className={th(false)}>数えた現金</th>
+                <th className={th(false)}>差額</th>
               </tr>
             </thead>
             <tbody>
               {past.map((c) => (
                 <tr key={c.closing_id}>
-                  <td>
+                  <td className={td()}>
                     {c.business_date}
                     {c.is_test && <span className="tag tag--test">テスト</span>}
                   </td>
-                  <td>{registerLabel(c.register_id)}</td>
-                  <td className="num">{yen(c.system_cash_sales)}</td>
-                  <td className="num">{yen(c.counted_cash)}</td>
-                  <td className="num">{c.difference.toLocaleString()}円</td>
+                  <td className={td()}>{registerLabel(c.register_id)}</td>
+                  <td className={td(true)}>{yen(c.system_cash_sales)}</td>
+                  <td className={td(true)}>{yen(c.counted_cash)}</td>
+                  <td className={td(true)}>{c.difference.toLocaleString()}円</td>
                 </tr>
               ))}
             </tbody>
