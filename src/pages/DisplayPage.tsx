@@ -117,7 +117,7 @@ export function DisplayPage() {
                     <span
                       className={`inline-flex flex-wrap items-center font-bold text-(--tone-ink) ${wrapName}`}
                     >
-                      <ItemArt item={l.item} className="size-[clamp(36px,6vw,60px)]" />
+                      <ItemArt item={l.item} className="size-[clamp(42px,6vw,72px)]" />
                       {labels[l.item]}
                     </span>
                   </td>
@@ -172,7 +172,7 @@ export function DisplayPage() {
 }
 
 /** 明細の行のセル */
-const lineCell = 'border-b border-(--grid) px-1 py-2';
+const lineCell = 'border-b border-(--grid) px-1 py-1';
 /** 「合計」「お預かり」「お釣り」の行（名前は左、金額は右） */
 const amountRow = 'flex items-baseline justify-between';
 
