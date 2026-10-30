@@ -41,7 +41,7 @@ export function DisplayPage() {
 
   return (
     // display はテストの目印。背景はダークのときグラデーションになる（--display-bg）
-    <div className="display relative grid min-h-dvh place-items-center p-[clamp(16px,4vw,48px)] text-text [background:var(--display-bg,var(--bg))]">
+    <div className="display relative grid min-h-dvh place-items-center p-[clamp(16px,4vw,24px)] text-text [background:var(--display-bg,var(--bg))]">
       {!fullscreen && document.fullscreenEnabled && (
         <button
           className="absolute top-3 right-3 min-h-12 cursor-pointer rounded-[10px] border border-border bg-surface px-4 py-0 opacity-60"
