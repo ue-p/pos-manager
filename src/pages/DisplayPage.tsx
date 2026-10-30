@@ -107,7 +107,7 @@ export function DisplayPage() {
       )}
 
       {(mode === 'cart' || mode === 'done') && state && (
-        <div className="flex w-[min(900px,100%)] self-stretch flex-col justify-between py-[clamp(16px,4vw,48px)]">
+        <div className="flex w-[min(900px,100%)] min-h-[calc(100dvh_-_2*clamp(16px,4vw,48px))] flex-col justify-between">
           {/* 明細テーブル：常に4行表示（空行で埋める） */}
           <table className="display-lines w-full border-collapse text-[clamp(1.3rem,3.5vw,2.2rem)]">
             <tbody>
