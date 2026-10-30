@@ -182,7 +182,8 @@ const amountRow = 'flex items-baseline justify-between';
  */
 function menuCard(item: ItemCode, soldOut: boolean): string {
   const base =
-    'menu-card flex min-w-0 flex-col items-center gap-0.5 rounded-[20px] border-2 border-t-12 border-border px-3 py-[clamp(12px,2vw,24px)]';
+    // 'menu-card flex min-w-0 flex-col items-center gap-0.5 rounded-[20px] border-2 border-t-12 border-border px-3 py-[clamp(12px,2vw,24px)]';
+    'menu-card flex min-w-0 flex-col items-center gap-0.5 rounded-[20px] border-2 border-t-12 border-border px-3 py-8]';
   const tone =
     item === 'set'
       ? 'menu-card--set border-t-transparent [background:var(--set-edge-h)_0_0/100%_12px_no-repeat_border-box,var(--surface)]'
