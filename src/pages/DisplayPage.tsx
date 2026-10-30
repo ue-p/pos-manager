@@ -107,7 +107,7 @@ export function DisplayPage() {
       )}
 
       {(mode === 'cart' || mode === 'done') && state && (
-        <div className="grid max-h-full w-[min(900px,100%)] gap-[clamp(12px,3vw,28px)]">
+        <div className="grid max-h-full w-[min(900px,100%)] gap-[clamp(6px,2.5vw,14px)]">
           <table className="display-lines w-full border-collapse text-[clamp(1.3rem,3.5vw,2.2rem)]">
             <tbody>
               {state.lines.map((l) => (
